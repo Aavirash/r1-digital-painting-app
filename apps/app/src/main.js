@@ -1121,12 +1121,42 @@ window.onPluginMessage = function(data) {
     }, 3000);
   }
   
-  // Handle special cases
-  if (data && data.request && data.request === "base64_data") {
-    console.log('R1 system is requesting base64 data');
+  // Handle special cases - when R1 system is working on the request
+  if (data && (data.status || data.processing || data.working)) {
+    console.log('R1 system is processing request');
     // Create feedback to inform user
     const feedback = document.createElement('div');
-    feedback.textContent = 'R1 system is processing your artwork...';
+    feedback.textContent = 'R1 system is processing your request...';
+    feedback.style.cssText = `
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(254, 95, 0, 0.9);
+      color: #000;
+      padding: 10px 20px;
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: bold;
+      z-index: 100;
+      pointer-events: none;
+    `;
+    
+    document.body.appendChild(feedback);
+    
+    setTimeout(() => {
+      if (feedback.parentNode) {
+        feedback.remove();
+      }
+    }, 3000);
+  }
+  
+  // Handle upload requests
+  if (data && data.request === "base64_data") {
+    console.log('R1 system is requesting base64 data');
+    // The R1 system already has the data, this is just confirmation
+    const feedback = document.createElement('div');
+    feedback.textContent = 'Uploading artwork to hosting service...';
     feedback.style.cssText = `
       position: fixed;
       top: 50%;
@@ -1377,19 +1407,27 @@ async function sendImageToR1System(imageData, email) {
     const base64Data = imageData.split(',')[1];
     
     // Send to R1 system with the image data and email
-    // The R1 system will handle the upload to catbox and email sending
+    // Provide clear instructions for using an online base64 to image converter
     if (typeof PluginMessageHandler !== 'undefined') {
       const payload = {
-        message: `Please upload this artwork to a public hosting service and send an email to ${email} with the artwork URL. The artwork is attached as base64 data in the imageBase64 field.`,
+        message: `USER REQUEST: Please convert this digital artwork to a public image URL and email it to ${email}. Instructions: 1. Go to https://base64.guru/converter/decode/image 2. Paste the base64 data from the imageBase64 field into the input box 3. Click "Decode Base64 to Image" 4. Click the download link to get the public URL 5. Send that URL to ${email}`,
         imageBase64: base64Data, // Use the dedicated imageBase64 field
         recipientEmail: email,
         useLLM: true,
         wantsR1Response: true,
-        action: "uploadAndEmailArtwork",
-        imageFormat: "png"
+        action: "convertAndEmailArtwork",
+        imageFormat: "png",
+        conversionUrl: "https://base64.guru/converter/decode/image",
+        stepByStepInstructions: [
+          "Go to the conversion website",
+          "Paste the base64 data",
+          "Click decode button",
+          "Get the public URL",
+          "Send URL via email"
+        ]
       };
       
-      console.log('Sending image to R1 system for upload and email processing');
+      console.log('Sending image to R1 system with conversion instructions');
       console.log('Base64 data length:', base64Data ? base64Data.length : 'undefined');
       
       // Wrap in try-catch to prevent app from closing
