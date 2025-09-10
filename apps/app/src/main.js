@@ -14,7 +14,7 @@ if (typeof PluginMessageHandler !== 'undefined') {
 
 let canvas, ctx;
 let isDrawing = false;
-let currentTool = 'kaleidoscope';
+let currentTool = 'brush';
 let currentColor = '#FE5F00';
 let brushSize = 5;
 let toolbarVisible = false;
@@ -28,11 +28,11 @@ let symmetryEnabled = false;
 let symmetryLines = 4;
 
 const tools = [
+  { name: 'brush', icon: '<i class="fas fa-paint-brush"></i>', label: 'Brush' },
   { name: 'kaleidoscope', icon: '<i class="fas fa-magic"></i>', label: 'Kaleidoscope' },
   { name: 'symmetry', icon: '<i class="fas fa-sync-alt"></i>', label: 'Symmetry' },
-  { name: 'watercolor', icon: '<i class="fas fa-paint-brush"></i>', label: 'Watercolor' },
   { name: 'eraser', icon: '<i class="fas fa-eraser"></i>', label: 'Eraser' },
-  { name: 'text', icon: '<i class="fas fa-font"></i>', label: 'Text' },
+  { name: 'lines', icon: '<i class="fas fa-slash"></i>', label: 'Lines' },
   { name: 'llm', icon: '<i class="fas fa-microphone"></i>', label: 'AI Advice' },
   { name: 'palette', icon: '<i class="fas fa-palette"></i>', label: 'Palette' }
 ];
@@ -105,7 +105,7 @@ function showUndoFeedback() {
 function clearCanvas() {
   // Animated clear with confirmation
   if (confirm('Clear entire canvas? This cannot be undone.')) {
-    // Spiral clear animation
+    // Simple clear animation
     const centerX = canvas.width / 2;
     const centerY = canvas.height / 2;
     const maxRadius = Math.sqrt(centerX ** 2 + centerY ** 2);
@@ -118,7 +118,7 @@ function clearCanvas() {
       ctx.fill();
       ctx.globalCompositeOperation = 'source-over';
       
-      currentRadius += 15;
+      currentRadius += 20;
       if (currentRadius < maxRadius + 20) {
         requestAnimationFrame(clearStep);
       } else {
@@ -178,89 +178,87 @@ function resetCanvas() {
 // Drawing Tools Implementation
 // ===========================================
 
+function drawBrush(x, y) {
+  ctx.fillStyle = currentColor;
+  ctx.strokeStyle = currentColor;
+  ctx.lineWidth = brushSize * pressure;
+  
+  // Simple geometric brush stroke
+  if (drawBrush.prevX !== null && drawBrush.prevY !== null) {
+    ctx.beginPath();
+    ctx.moveTo(drawBrush.prevX, drawBrush.prevY);
+    ctx.lineTo(x, y);
+    ctx.stroke();
+  }
+  
+  // Draw circle at current position
+  ctx.beginPath();
+  ctx.arc(x, y, brushSize * pressure * 0.5, 0, Math.PI * 2);
+  ctx.fill();
+  
+  // Store current position for next draw call
+  drawBrush.prevX = x;
+  drawBrush.prevY = y;
+}
+
 function drawKaleidoscope(x, y) {
   const centerX = canvas.width / 2;
   const centerY = canvas.height / 2;
   const segments = 12; // More segments for richer patterns
   
-  // Calculate distance from center for dynamic effects
-  const distanceFromCenter = Math.sqrt((x - centerX) ** 2 + (y - centerY) ** 2);
-  const maxDistance = Math.sqrt(centerX ** 2 + centerY ** 2);
-  const normalizedDistance = distanceFromCenter / maxDistance;
-  
   ctx.fillStyle = currentColor;
   ctx.strokeStyle = currentColor;
   ctx.lineWidth = brushSize * pressure * 0.5;
   
-  // Create multiple layers for depth
-  for (let layer = 0; layer < 3; layer++) {
-    const layerAlpha = (0.8 - layer * 0.2) * (1 - normalizedDistance * 0.3);
-    ctx.globalAlpha = layerAlpha;
+  // Create clean geometric kaleidoscope effect
+  for (let i = 0; i < segments; i++) {
+    const angle = (i * Math.PI * 2) / segments;
+    const cos = Math.cos(angle);
+    const sin = Math.sin(angle);
     
-    const layerOffset = layer * 2;
-    const layerSize = brushSize * pressure * (1 + layer * 0.3);
+    // Primary reflection
+    const rotatedX = centerX + (x - centerX) * cos - (y - centerY) * sin;
+    const rotatedY = centerY + (x - centerX) * sin + (y - centerY) * cos;
     
-    for (let i = 0; i < segments; i++) {
-      const angle = (i * Math.PI * 2) / segments;
-      const cos = Math.cos(angle);
-      const sin = Math.sin(angle);
+    // Mirror reflection for true kaleidoscope effect
+    const mirrorX = centerX + (centerX - rotatedX);
+    const mirrorY = centerY + (centerY - rotatedY);
+    
+    // Draw clean geometric lines
+    if (drawKaleidoscope.prevX !== null && drawKaleidoscope.prevY !== null) {
+      const prevRotatedX = centerX + (drawKaleidoscope.prevX - centerX) * cos - (drawKaleidoscope.prevY - centerY) * sin;
+      const prevRotatedY = centerY + (drawKaleidoscope.prevX - centerX) * sin + (drawKaleidoscope.prevY - centerY) * cos;
       
-      // Primary reflection
-      const rotatedX = centerX + (x - centerX) * cos - (y - centerY) * sin;
-      const rotatedY = centerY + (x - centerX) * sin + (y - centerY) * cos;
+      const prevMirrorX = centerX + (centerX - prevRotatedX);
+      const prevMirrorY = centerY + (centerY - prevRotatedY);
       
-      // Mirror reflection for true kaleidoscope effect
-      const mirrorX = centerX + (centerX - rotatedX);
-      const mirrorY = centerY + (centerY - rotatedY);
-      
-      // Draw primary point
+      // Draw primary line
       ctx.beginPath();
-      ctx.arc(rotatedX + layerOffset, rotatedY + layerOffset, layerSize, 0, Math.PI * 2);
-      ctx.fill();
+      ctx.moveTo(prevRotatedX, prevRotatedY);
+      ctx.lineTo(rotatedX, rotatedY);
+      ctx.stroke();
       
-      // Draw mirror point
+      // Draw mirror line
       ctx.beginPath();
-      ctx.arc(mirrorX - layerOffset, mirrorY - layerOffset, layerSize * 0.8, 0, Math.PI * 2);
-      ctx.fill();
-      
-      // Add connecting lines for web effect
-      if (layer === 0 && i % 2 === 0) {
-        ctx.beginPath();
-        ctx.moveTo(rotatedX, rotatedY);
-        ctx.lineTo(mirrorX, mirrorY);
-        ctx.stroke();
-      }
-      
-      // Add radial burst effect
-      if (normalizedDistance > 0.3) {
-        const burstLength = 10 * pressure;
-        const burstX = rotatedX + cos * burstLength;
-        const burstY = rotatedY + sin * burstLength;
-        
-        ctx.beginPath();
-        ctx.moveTo(rotatedX, rotatedY);
-        ctx.lineTo(burstX, burstY);
-        ctx.stroke();
-      }
+      ctx.moveTo(prevMirrorX, prevMirrorY);
+      ctx.lineTo(mirrorX, mirrorY);
+      ctx.stroke();
     }
+    
+    // Draw primary point
+    ctx.beginPath();
+    ctx.arc(rotatedX, rotatedY, brushSize * pressure * 0.3, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Draw mirror point
+    ctx.beginPath();
+    ctx.arc(mirrorX, mirrorY, brushSize * pressure * 0.3, 0, Math.PI * 2);
+    ctx.fill();
   }
   
-  // Add sparkle effect at center
-  if (distanceFromCenter < 20) {
-    ctx.globalAlpha = 0.9;
-    ctx.fillStyle = '#FFFFFF';
-    for (let i = 0; i < 4; i++) {
-      const sparkleAngle = (i * Math.PI) / 2 + Date.now() * 0.01;
-      const sparkleX = centerX + Math.cos(sparkleAngle) * 5;
-      const sparkleY = centerY + Math.sin(sparkleAngle) * 5;
-      
-      ctx.beginPath();
-      ctx.arc(sparkleX, sparkleY, 1, 0, Math.PI * 2);
-      ctx.fill();
-    }
-  }
-  
-  ctx.globalAlpha = 1.0;
+  // Store current position for next draw call
+  drawKaleidoscope.prevX = x;
+  drawKaleidoscope.prevY = y;
 }
 
 function drawSymmetry(x, y) {
@@ -289,12 +287,12 @@ function drawSymmetry(x, y) {
     symmetryPoints.push({ x: symX, y: symY });
   }
   
-  // Draw brush strokes between previous and current positions
+  // Draw clean geometric brush strokes between previous and current positions
   if (drawSymmetry.prevPositions.length === symmetryPoints.length && isDrawing) {
     symmetryPoints.forEach((point, i) => {
       const prevPoint = drawSymmetry.prevPositions[i];
       
-      // Draw brush stroke
+      // Draw clean geometric line
       ctx.beginPath();
       ctx.moveTo(prevPoint.x, prevPoint.y);
       ctx.lineTo(point.x, point.y);
@@ -302,60 +300,31 @@ function drawSymmetry(x, y) {
       
       // Draw point at current position
       ctx.beginPath();
-      ctx.arc(point.x, point.y, brushSize * pressure * 0.5, 0, Math.PI * 2);
+      ctx.arc(point.x, point.y, brushSize * pressure * 0.3, 0, Math.PI * 2);
       ctx.fill();
     });
   }
   
   // Store current positions for next draw call
   drawSymmetry.prevPositions = symmetryPoints;
-  
-  // Add particles for visual effect
-  if (Math.random() < 0.3) {
-    createPaintParticles(x, y, 2);
-  }
 }
 
-function drawWatercolor(x, y) {
+function drawLines(x, y) {
   ctx.fillStyle = currentColor;
   ctx.strokeStyle = currentColor;
+  ctx.lineWidth = brushSize * pressure;
   
-  // Watercolor effect with variable opacity and size
-  const watercolorSize = brushSize * pressure * 2;
-  const opacity = 0.1 + Math.random() * 0.2;
-  
-  ctx.globalAlpha = opacity;
-  
-  // Create irregular watercolor shape
-  ctx.beginPath();
-  for (let i = 0; i < 8; i++) {
-    const angle = (i * Math.PI * 2) / 8;
-    const radius = watercolorSize * (0.7 + Math.random() * 0.6);
-    const px = x + Math.cos(angle) * radius;
-    const py = y + Math.sin(angle) * radius;
-    
-    if (i === 0) ctx.moveTo(px, py);
-    else ctx.lineTo(px, py);
-  }
-  ctx.closePath();
-  ctx.fill();
-  
-  // Add watercolor bleeding effect
-  if (Math.random() < 0.4) {
-    ctx.globalAlpha = opacity * 0.5;
+  // Draw clean geometric lines
+  if (drawLines.prevX !== null && drawLines.prevY !== null) {
     ctx.beginPath();
-    ctx.arc(x + (Math.random() - 0.5) * watercolorSize, 
-            y + (Math.random() - 0.5) * watercolorSize, 
-            watercolorSize * 0.8, 0, Math.PI * 2);
-    ctx.fill();
+    ctx.moveTo(drawLines.prevX, drawLines.prevY);
+    ctx.lineTo(x, y);
+    ctx.stroke();
   }
   
-  ctx.globalAlpha = 1.0;
-  
-  // Add particles for texture
-  if (Math.random() < 0.5) {
-    createPaintParticles(x, y, 1);
-  }
+  // Store current position for next draw call
+  drawLines.prevX = x;
+  drawLines.prevY = y;
 }
 
 function erase(x, y) {
@@ -363,7 +332,7 @@ function erase(x, y) {
   ctx.strokeStyle = 'rgba(0,0,0,1)';
   ctx.lineWidth = brushSize * pressure * 1.5;
   
-  // If we have a previous position, draw a line
+  // Draw clean geometric eraser line
   if (erase.prevX !== null && erase.prevY !== null) {
     ctx.beginPath();
     ctx.moveTo(erase.prevX, erase.prevY);
@@ -385,29 +354,31 @@ function erase(x, y) {
 }
 
 // Initialize previous positions for drawing functions
+drawBrush.prevX = null;
+drawBrush.prevY = null;
+drawKaleidoscope.prevX = null;
+drawKaleidoscope.prevY = null;
 drawSymmetry.prevPositions = [];
+drawLines.prevX = null;
+drawLines.prevY = null;
 erase.prevX = null;
 erase.prevY = null;
 
 // ===========================================
-// Particle System
+// Particle System (simplified for performance)
 // ===========================================
 
-function createParticle(x, y, type = 'paint') {
+function createParticle(x, y, type = 'simple') {
   return {
     x: x,
     y: y,
-    vx: (Math.random() - 0.5) * 4,
-    vy: (Math.random() - 0.5) * 4,
-    size: Math.random() * 3 + 1,
+    vx: (Math.random() - 0.5) * 2,
+    vy: (Math.random() - 0.5) * 2,
+    size: Math.random() * 2 + 1,
     color: currentColor,
     life: 1.0,
-    decay: Math.random() * 0.02 + 0.01,
-    rotation: Math.random() * Math.PI * 2,
-    rotationSpeed: (Math.random() - 0.5) * 0.1,
-    bounce: 0.8,
-    type: type,
-    trail: [{x: x, y: y}]
+    decay: Math.random() * 0.05 + 0.02,
+    type: type
   };
 }
 
@@ -419,32 +390,23 @@ function updateParticles() {
     p.x += p.vx;
     p.y += p.vy;
     
-    // Add gravity
-    p.vy += 0.1;
+    // Apply gravity
+    p.vy += 0.05;
     
-    // Add to trail
-    p.trail.push({x: p.x, y: p.y});
-    if (p.trail.length > 5) {
-      p.trail.shift();
-    }
-    
-    // Apply rotation
-    p.rotation += p.rotationSpeed;
-    
-    // Boundary collisions with bounce
+    // Boundary collisions
     if (p.x <= p.size || p.x >= canvas.width - p.size) {
-      p.vx *= -p.bounce;
+      p.vx *= -0.8;
       p.x = Math.max(p.size, Math.min(canvas.width - p.size, p.x));
     }
     
     if (p.y <= p.size || p.y >= canvas.height - p.size) {
-      p.vy *= -p.bounce;
+      p.vy *= -0.8;
       p.y = Math.max(p.size, Math.min(canvas.height - p.size, p.y));
     }
     
     // Apply air resistance
-    p.vx *= 0.995;
-    p.vy *= 0.995;
+    p.vx *= 0.98;
+    p.vy *= 0.98;
     
     // Update life
     p.life -= p.decay;
@@ -457,97 +419,26 @@ function updateParticles() {
 }
 
 function drawParticles() {
+  // Simplified particle drawing for better performance
   particles.forEach(p => {
-    // Draw particle trail
-    if (p.trail.length > 1) {
-      ctx.globalAlpha = p.life * 0.3;
-      ctx.strokeStyle = p.color;
-      ctx.lineWidth = p.size * 0.5;
-      ctx.beginPath();
-      ctx.moveTo(p.trail[0].x, p.trail[0].y);
-      
-      for (let i = 1; i < p.trail.length; i++) {
-        ctx.lineTo(p.trail[i].x, p.trail[i].y);
-      }
-      ctx.stroke();
-    }
-    
-    // Draw main particle
-    ctx.save();
-    ctx.translate(p.x, p.y);
-    ctx.rotate(p.rotation);
     ctx.globalAlpha = p.life;
-    
-    switch (p.type) {
-      case 'sparkle':
-        // Draw star shape
-        ctx.fillStyle = p.color;
-        ctx.beginPath();
-        for (let i = 0; i < 5; i++) {
-          const angle = (i * Math.PI * 2) / 5;
-          const x = Math.cos(angle) * p.size;
-          const y = Math.sin(angle) * p.size;
-          if (i === 0) ctx.moveTo(x, y);
-          else ctx.lineTo(x, y);
-        }
-        ctx.closePath();
-        ctx.fill();
-        break;
-        
-      case 'kaleidoscope':
-        // Draw multi-colored segments
-        const segments = 6;
-        for (let i = 0; i < segments; i++) {
-          const angle = (i * Math.PI * 2) / segments;
-          ctx.fillStyle = `hsl(${(Date.now() * 0.1 + i * 60) % 360}, 70%, 60%)`;
-          ctx.beginPath();
-          ctx.moveTo(0, 0);
-          ctx.arc(0, 0, p.size, angle, angle + Math.PI * 2 / segments);
-          ctx.fill();
-        }
-        break;
-        
-      default:
-        // Regular circular particle
-        ctx.fillStyle = p.color;
-        ctx.beginPath();
-        ctx.arc(0, 0, p.size, 0, Math.PI * 2);
-        ctx.fill();
-        
-        // Add inner glow
-        if (p.life > 0.5) {
-          ctx.globalAlpha = (p.life - 0.5) * 0.5;
-          ctx.fillStyle = '#FFFFFF';
-          ctx.beginPath();
-          ctx.arc(0, 0, p.size * 0.5, 0, Math.PI * 2);
-          ctx.fill();
-        }
-        break;
-    }
-    
-    ctx.restore();
+    ctx.fillStyle = p.color;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+    ctx.fill();
   });
   
   ctx.globalAlpha = 1.0;
 }
 
-function createPaintParticles(x, y, count = 5) {
-  const particleType = currentTool === 'kaleidoscope' ? 'kaleidoscope' :
-                      currentTool === 'watercolor' ? 'watercolor' : 'paint';
-  
+function createPaintParticles(x, y, count = 3) {
+  // Reduced particle count for better performance
   for (let i = 0; i < count * pressure; i++) {
     particles.push(createParticle(
-      x + (Math.random() - 0.5) * 10,
-      y + (Math.random() - 0.5) * 10,
-      particleType
+      x + (Math.random() - 0.5) * 5,
+      y + (Math.random() - 0.5) * 5,
+      'simple'
     ));
-  }
-  
-  // Add sparkles for special effects
-  if (Math.random() < 0.3 && pressure > 1.5) {
-    for (let i = 0; i < 2; i++) {
-      particles.push(createParticle(x, y, 'sparkle'));
-    }
   }
 }
 
@@ -590,7 +481,7 @@ function updateToolbarDisplay() {
     
     // Convert to radians and calculate position
     const radian = (angle * Math.PI) / 180;
-    const radius = 18; // vw units for half-circle radius
+    const radius = 20; // vw units for half-circle radius
     const x = Math.cos(radian) * radius;
     const y = Math.sin(radian) * radius;
     
@@ -599,7 +490,7 @@ function updateToolbarDisplay() {
     item.classList.toggle('selected', index === selectedToolIndex);
     
     // Add rotation animation effect
-    item.style.transition = 'all 0.3s cubic-bezier(0.4, 0.0, 0.2, 1)';
+    item.style.transition = 'all 0.2s ease';
   });
   
   // Update center tool display with selected tool
@@ -608,12 +499,12 @@ function updateToolbarDisplay() {
     centerTool.innerHTML = selectedTool.icon;
     centerTool.title = selectedTool.label;
     centerTool.style.transform = 'translate(-50%, -50%) scale(1.1)';
-    centerTool.style.transition = 'transform 0.2s ease';
+    centerTool.style.transition = 'transform 0.1s ease';
     
     // Reset scale after animation
     setTimeout(() => {
       centerTool.style.transform = 'translate(-50%, -50%) scale(1)';
-    }, 200);
+    }, 100);
   }
 }
 
@@ -644,7 +535,10 @@ function selectTool(index) {
     case 'kaleidoscope':
       symmetryEnabled = false;
       break;
-    case 'watercolor':
+    case 'brush':
+      symmetryEnabled = false;
+      break;
+    case 'lines':
       symmetryEnabled = false;
       break;
     case 'eraser':
@@ -660,7 +554,7 @@ function selectTool(index) {
     centerTool.style.transform = 'translate(-50%, -50%) scale(1.2)';
     setTimeout(() => {
       centerTool.style.transform = 'translate(-50%, -50%) scale(1)';
-    }, 150);
+    }, 100);
   }
   
   console.log(`Selected tool: ${tools[index].label}`);
@@ -724,9 +618,9 @@ function handleMouseDown(e) {
   const x = (e.clientX - rect.left) * (canvas.width / rect.width);
   const y = (e.clientY - rect.top) * (canvas.height / rect.height);
   
-  // Create particles on drawing start
+  // Create minimal particles on drawing start
   if (currentTool !== 'eraser') {
-    createPaintParticles(x, y, 3);
+    createPaintParticles(x, y, 1);
   }
   
   draw(x, y);
@@ -739,8 +633,8 @@ function handleMouseMove(e) {
   const x = (e.clientX - rect.left) * (canvas.width / rect.width);
   const y = (e.clientY - rect.top) * (canvas.height / rect.height);
   
-  // Create particles during movement
-  if (currentTool !== 'eraser' && Math.random() < 0.7) {
+  // Create minimal particles during movement
+  if (currentTool !== 'eraser' && Math.random() < 0.3) {
     createPaintParticles(x, y, 1);
   }
   
@@ -751,19 +645,32 @@ function handleMouseUp() {
   if (isDrawing) {
     isDrawing = false;
     saveState();
+    
+    // Reset previous positions for all drawing functions
+    drawBrush.prevX = null;
+    drawBrush.prevY = null;
+    drawKaleidoscope.prevX = null;
+    drawKaleidoscope.prevY = null;
+    drawLines.prevX = null;
+    drawLines.prevY = null;
+    erase.prevX = null;
+    erase.prevY = null;
   }
 }
 
 function draw(x, y) {
   switch (currentTool) {
+    case 'brush':
+      drawBrush(x, y);
+      break;
     case 'kaleidoscope':
       drawKaleidoscope(x, y);
       break;
     case 'symmetry':
       drawSymmetry(x, y);
       break;
-    case 'watercolor':
-      drawWatercolor(x, y);
+    case 'lines':
+      drawLines(x, y);
       break;
     case 'eraser':
       erase(x, y);
@@ -825,11 +732,6 @@ window.addEventListener('sideClick', () => {
       
       // Update color palette UI
       updateColorPalette();
-      hideToolbar();
-      return;
-    } else if (selectedTool.name === 'text') {
-      // Activate text input mode
-      activateTextTool();
       hideToolbar();
       return;
     }
@@ -905,10 +807,13 @@ function initApp() {
   // Initialize color palette
   updateColorPalette();
   
-  // Start animation loop
+  // Start simplified animation loop
   function animate() {
-    updateParticles();
-    drawParticles();
+    // Update and draw particles at a reduced rate for better performance
+    if (Math.random() < 0.3) {
+      updateParticles();
+      drawParticles();
+    }
     requestAnimationFrame(animate);
   }
   
