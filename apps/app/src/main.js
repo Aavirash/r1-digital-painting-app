@@ -1135,14 +1135,25 @@ function takeScreenshotAndSend() {
   // Take screenshot of canvas without UI elements
   const imageData = canvas.toDataURL('image/png');
   
+  // Log the data size for debugging
+  console.log('Image data size:', imageData.length, 'characters');
+  
   // Send to LLM for email with proper instruction
   if (typeof PluginMessageHandler !== 'undefined') {
     const payload = {
-      message: `Please email this digital artwork to the user's email address. The artwork is attached as a PNG image with the following base64 data: ${imageData}`,
+      message: `Please send an email with the following details:
+Subject: Your Digital Artwork from R1
+Body: Your digital artwork is attached as a PNG image.
+Generated: ${new Date().toLocaleString()}
+
+Image Data (PNG format): ${imageData}`,
       useLLM: true,
       wantsR1Response: true
     };
+    console.log('Sending payload to PluginMessageHandler:', JSON.stringify(payload).substring(0, 200) + '...');
     PluginMessageHandler.postMessage(JSON.stringify(payload));
+  } else {
+    console.error('PluginMessageHandler is not available');
   }
   
   // Visual feedback
