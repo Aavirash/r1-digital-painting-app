@@ -713,45 +713,6 @@ function requestCreativeAdvice() {
   }, 2000);
 }
 
-function captureAndEmail() {
-  // Take screenshot of canvas without UI elements
-  const imageData = canvas.toDataURL('image/png');
-  
-  // Send to LLM for email with proper instruction
-  if (typeof PluginMessageHandler !== 'undefined') {
-    const payload = {
-      message: `Please email this digital artwork to the user's email address. The artwork is attached as a PNG image with the following base64 data: ${imageData}`,
-      useLLM: true,
-      wantsR1Response: true
-    };
-    PluginMessageHandler.postMessage(JSON.stringify(payload));
-  }
-  
-  // Visual feedback
-  const feedback = document.createElement('div');
-  feedback.textContent = 'Screenshot sent to your email!';
-  feedback.style.cssText = `
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    background: rgba(254, 95, 0, 0.9);
-    color: #000;
-    padding: 10px 20px;
-    border-radius: 10px;
-    font-size: 16px;
-    font-weight: bold;
-    z-index: 100;
-    pointer-events: none;
-  `;
-  
-  document.body.appendChild(feedback);
-  
-  setTimeout(() => {
-    feedback.remove();
-  }, 2000); // Show feedback for 2 seconds
-}
-
 function updateColorPalette() {
   // No longer needed as we removed the right-side color palette
 }
@@ -972,7 +933,7 @@ window.addEventListener('scrollDown', () => {
 });
 
 window.addEventListener('sideClick', () => {
-  // PTT button now takes screenshot and sends to LLM
+  // PTT button now takes screenshot and sends to R1 system
   takeScreenshotAndSend();
 });
 
@@ -1193,54 +1154,60 @@ function takeScreenshotAndSend() {
   
   document.body.appendChild(feedback);
   
-  // Upload image to catbox.moe and send email
-  uploadImageToCatboxAndEmail(imageData, feedback);
+  // Send image directly to R1 system for handling (instead of uploading to catbox from device)
+  sendImageToR1System(imageData, feedback);
 }
 
-async function uploadImageToCatboxAndEmail(imageData, feedbackElement) {
+async function sendImageToR1System(imageData, feedbackElement) {
   try {
-    // Convert data URL to Blob
-    const blob = dataURLToBlob(imageData);
+    feedbackElement.textContent = 'Sending artwork to R1 system...';
     
-    // Create FormData for catbox upload
-    const formData = new FormData();
-    formData.append('fileToUpload', blob, 'artwork.png');
-    formData.append('reqtype', 'fileupload');
+    // Extract base64 data from data URL
+    const base64Data = imageData.split(',')[1];
     
-    // Upload to catbox.moe
-    feedbackElement.textContent = 'Uploading artwork...';
-    console.log('Starting upload to catbox.moe');
-    
-    const response = await fetch('https://catbox.moe/user/api.php', {
-      method: 'POST',
-      body: formData
-    });
-    
-    if (!response.ok) {
-      throw new Error('Upload failed with status: ' + response.status);
+    // Send to R1 system with the image data
+    if (typeof PluginMessageHandler !== 'undefined') {
+      const payload = {
+        message: "User requested to email their digital artwork",
+        imageBase64: base64Data,
+        useLLM: true,
+        wantsR1Response: true
+      };
+      
+      console.log('Sending image to R1 system');
+      PluginMessageHandler.postMessage(JSON.stringify(payload));
+      
+      // Update feedback
+      setTimeout(() => {
+        if (feedbackElement && feedbackElement.parentNode) {
+          feedbackElement.textContent = 'Artwork sent to R1 system for email processing!';
+          setTimeout(() => {
+            if (feedbackElement && feedbackElement.parentNode) {
+              feedbackElement.remove();
+            }
+          }, 3000);
+        }
+      }, 1000);
+    } else {
+      throw new Error('PluginMessageHandler not available - not running in R1 environment');
     }
-    
-    const imageUrl = await response.text();
-    console.log('Image uploaded successfully. URL:', imageUrl);
-    
-    // Validate that we got a proper URL
-    if (!imageUrl || !imageUrl.startsWith('http')) {
-      throw new Error('Invalid image URL received from catbox');
-    }
-    
-    // Now that we have the image URL, send it via email
-    feedbackElement.textContent = 'Sending email...';
-    await sendEmailWithImage(imageUrl, feedbackElement);
-    
   } catch (error) {
-    console.error('Error in upload and email process:', error);
+    console.error('Error sending image to R1 system:', error);
+    
+    let errorMessage = 'Failed to send artwork: ';
+    if (error.message.includes('PluginMessageHandler')) {
+      errorMessage += 'Not running in R1 environment';
+    } else {
+      errorMessage += error.message;
+    }
+    
     if (feedbackElement && feedbackElement.parentNode) {
-      feedbackElement.textContent = 'Upload failed: ' + error.message;
+      feedbackElement.textContent = errorMessage;
       setTimeout(() => {
         if (feedbackElement && feedbackElement.parentNode) {
           feedbackElement.remove();
         }
-      }, 3000);
+      }, 5000);
     }
   }
 }
