@@ -740,20 +740,21 @@ function updateColorPalette() {
 // ===========================================
 
 function toggleCanvasColorPicker() {
-  canvasColorPickerMode = !canvasColorPickerMode;
-  
   const colorPicker = document.getElementById('colorPicker');
   const colorPalette = document.querySelector('.color-palette');
   
-  if (canvasColorPickerMode) {
-    // Show color picker popup
-    colorPicker.style.display = 'flex';
-    colorPalette.style.display = 'none';
-  } else {
-    // Hide color picker popup
+  // Toggle visibility
+  if (colorPicker.style.display === 'flex') {
+    // Hide color picker, show regular palette
     colorPicker.style.display = 'none';
     colorPalette.style.display = 'flex';
+  } else {
+    // Show color picker, hide regular palette
+    colorPicker.style.display = 'flex';
+    colorPalette.style.display = 'none';
   }
+  
+  console.log('Toggled canvas color picker. Color picker display:', colorPicker.style.display);
 }
 
 function setCanvasBackgroundColor(color) {
@@ -763,12 +764,13 @@ function setCanvasBackgroundColor(color) {
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   saveState();
   
-  // Exit color picker mode
-  canvasColorPickerMode = false;
+  // Hide color picker and show regular palette
   const colorPicker = document.getElementById('colorPicker');
   const colorPalette = document.querySelector('.color-palette');
   colorPicker.style.display = 'none';
   colorPalette.style.display = 'flex';
+  
+  console.log('Canvas background color set to:', color);
 }
 
 // ===========================================

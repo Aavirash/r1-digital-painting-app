@@ -207,7 +207,7 @@ html, body {
     display: none;
     flex-direction: column;
     gap: 6px; /* Same as regular color palette */
-    z-index: 16;
+    z-index: 100; /* Increased z-index to ensure it's on top */
     background: rgba(26, 26, 46, 0.95);
     padding: 6px; /* Same as regular color palette */
     border-radius: 10px;
