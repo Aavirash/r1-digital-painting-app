@@ -1123,6 +1123,13 @@ window.handleLLMResponse = function(response) {
   }
 };
 
+// Handle plugin messages to prevent app from closing
+window.onPluginMessage = function(data) {
+  console.log('Received plugin message:', data);
+  // Handle any plugin messages here to prevent default behavior
+  // This should prevent the app from closing unexpectedly
+};
+
 // Close advice overlay when clicked
 document.addEventListener('click', (e) => {
   const adviceOverlay = document.getElementById('adviceOverlay');
@@ -1134,29 +1141,10 @@ document.addEventListener('click', (e) => {
 function takeScreenshotAndSend() {
   // Take screenshot of canvas without UI elements
   const imageData = canvas.toDataURL('image/png');
-  // Extract just the base64 part (remove the data:image/png;base64, prefix)
-  const imageBase64 = imageData.split(',')[1];
-  
-  // Log the data size for debugging
-  console.log('Image data size:', imageBase64.length, 'characters');
-  
-  // Send to LLM for email with proper instruction
-  if (typeof PluginMessageHandler !== 'undefined') {
-    const payload = {
-      message: "Please send this digital artwork as an email attachment to the user's email address. The image is provided as base64 data.",
-      imageBase64: imageBase64,
-      useLLM: true,
-      wantsR1Response: true
-    };
-    console.log('Sending payload to PluginMessageHandler with imageBase64 field');
-    PluginMessageHandler.postMessage(JSON.stringify(payload));
-  } else {
-    console.error('PluginMessageHandler is not available');
-  }
   
   // Visual feedback
   const feedback = document.createElement('div');
-  feedback.textContent = 'Screenshot sent to your email!';
+  feedback.textContent = 'Processing artwork...';
   feedback.style.cssText = `
     position: fixed;
     top: 50%;
@@ -1174,7 +1162,73 @@ function takeScreenshotAndSend() {
   
   document.body.appendChild(feedback);
   
-  setTimeout(() => {
-    feedback.remove();
-  }, 2000); // Show feedback for 2 seconds
+  // Upload image to catbox.moe and send email
+  uploadImageToCatboxAndEmail(imageData, feedback);
+}
+
+async function uploadImageToCatboxAndEmail(imageData, feedbackElement) {
+  try {
+    // Convert data URL to Blob
+    const blob = dataURLToBlob(imageData);
+    
+    // Create FormData for catbox upload
+    const formData = new FormData();
+    formData.append('fileToUpload', blob, 'artwork.png');
+    formData.append('reqtype', 'fileupload');
+    
+    // Upload to catbox.moe
+    feedbackElement.textContent = 'Uploading artwork...';
+    const response = await fetch('https://catbox.moe/user/api.php', {
+      method: 'POST',
+      body: formData
+    });
+    
+    if (!response.ok) {
+      throw new Error('Upload failed');
+    }
+    
+    const imageUrl = await response.text();
+    feedbackElement.textContent = 'Sending email...';
+    
+    // Send to LLM for email with image URL
+    if (typeof PluginMessageHandler !== 'undefined') {
+      const payload = {
+        message: `Please send this digital artwork as an email attachment to the user's email address. The artwork can be viewed at: ${imageUrl}`,
+        imageUrl: imageUrl,
+        useLLM: true,
+        wantsR1Response: true
+      };
+      PluginMessageHandler.postMessage(JSON.stringify(payload));
+    }
+    
+    // Update feedback
+    setTimeout(() => {
+      feedbackElement.textContent = 'Email sent successfully!';
+      setTimeout(() => {
+        feedbackElement.remove();
+      }, 2000);
+    }, 1000);
+    
+  } catch (error) {
+    console.error('Error uploading image:', error);
+    feedbackElement.textContent = 'Error sending email';
+    setTimeout(() => {
+      feedbackElement.remove();
+    }, 2000);
+  }
+}
+
+// Helper function to convert data URL to Blob
+function dataURLToBlob(dataURL) {
+  const parts = dataURL.split(';base64,');
+  const contentType = parts[0].split(':')[1];
+  const byteString = atob(parts[1]);
+  const ab = new ArrayBuffer(byteString.length);
+  const ia = new Uint8Array(ab);
+  
+  for (let i = 0; i < byteString.length; i++) {
+    ia[i] = byteString.charCodeAt(i);
+  }
+  
+  return new Blob([ab], { type: contentType });
 }
