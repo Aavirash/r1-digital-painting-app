@@ -1,0 +1,58 @@
+# Dependencies
+node_modules/
+*.local
+
+# Build output
+dist/
+dist-ssr/
+apps/app/dist/
+apps/static/
+
+# Project metadata
+.project-name
+apps/app/.project-name
+
+# Editor directories and files
+.vscode/
+!.vscode/extensions.json
+.idea/
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+.pnpm-debug.log*
+
+# Testing
+coverage/
+*.lcov
+.nyc_output
+
+# Temporary files
+*.tmp
+*.temp
+
+# Cache files
+.cache/
+.npm/
+.rabbit/
+
+# OS generated files
+Thumbs.db
+ehthumbs.db
+Icon?
+[Tt]humbs.db
+
+# Profile files
+.bash_logout
+.bashrc
+.profile
