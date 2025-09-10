@@ -40,7 +40,8 @@ const tools = [
   { name: 'drip', icon: '<i class="fas fa-fill-drip"></i>', label: 'Drip Paint' },
   { name: 'lines', icon: '<i class="fas fa-slash"></i>', label: 'Lines' },
   { name: 'llm', icon: '<i class="fas fa-microphone"></i>', label: 'AI Advice' },
-  { name: 'sacred', icon: '<i class="fas fa-spa"></i>', label: 'Sacred Geometry' }
+  { name: 'sacred', icon: '<i class="fas fa-spa"></i>', label: 'Sacred Geometry' },
+  { name: 'close', icon: '<i class="fas fa-times"></i>', label: 'Close' } // Add close as a tool
 ];
 
 // ===========================================
@@ -552,7 +553,7 @@ function updateToolSelector() {
 }
 
 function cycleTool(direction) {
-  // Cycle through tools
+  // Cycle through all tools including close tool
   if (direction > 0) {
     // Next tool
     selectedToolIndex = (selectedToolIndex + 1) % tools.length;
@@ -564,7 +565,7 @@ function cycleTool(direction) {
   currentTool = tools[selectedToolIndex].name;
   updateToolSelector();
   
-  // Tool-specific setup
+  // Tool-specific setup (only for drawing tools)
   switch (currentTool) {
     case 'symmetry':
       symmetryEnabled = true;
@@ -587,6 +588,7 @@ function cycleTool(direction) {
       initAudio();
       break;
     default:
+      // For close and llm tools, no special setup needed
       symmetryEnabled = false;
       particleSystemActive = false;
   }
@@ -830,48 +832,50 @@ function initAccelerometer() {
 // ===========================================
 
 window.addEventListener('scrollUp', () => {
-  // Cycle to previous tool and show selector
-  cycleTool(-1); // Previous tool
-  if (!toolbarVisible) {
-    showToolSelector();
+  // Only cycle tools when toolbar is visible
+  if (toolbarVisible) {
+    cycleTool(-1); // Previous tool
+    
+    // Reset hide timer
+    clearTimeout(selectorTimeout);
+    selectorTimeout = setTimeout(() => {
+      if (toolbarVisible) {
+        hideToolSelector();
+      }
+    }, 3000);
   }
-  
-  // Hide selector after a short delay
-  setTimeout(() => {
-    if (toolbarVisible) {
-      hideToolSelector();
-    }
-  }, 1000);
 });
 
 window.addEventListener('scrollDown', () => {
-  // Cycle to next tool and show selector
-  cycleTool(1); // Next tool
-  if (!toolbarVisible) {
-    showToolSelector();
+  // Only cycle tools when toolbar is visible
+  if (toolbarVisible) {
+    cycleTool(1); // Next tool
+    
+    // Reset hide timer
+    clearTimeout(selectorTimeout);
+    selectorTimeout = setTimeout(() => {
+      if (toolbarVisible) {
+        hideToolSelector();
+      }
+    }, 3000);
   }
-  
-  // Hide selector after a short delay
-  setTimeout(() => {
-    if (toolbarVisible) {
-      hideToolSelector();
-    }
-  }, 1000);
 });
 
 window.addEventListener('sideClick', () => {
-  const selectedTool = tools[selectedToolIndex];
-  
-  // Handle special tools
-  if (selectedTool.name === 'llm') {
-    requestCreativeAdvice();
-    return;
-  }
-  
-  // Toggle tool selector visibility
+  // Toggle tool selector visibility with PTT button
   if (toolbarVisible) {
-    hideToolSelector();
+    // When selector is visible, select the current tool
+    if (tools[selectedToolIndex].name === 'llm') {
+      requestCreativeAdvice();
+      hideToolSelector();
+    } else if (tools[selectedToolIndex].name === 'close') {
+      hideToolSelector();
+    } else {
+      // For drawing tools, just hide the selector
+      hideToolSelector();
+    }
   } else {
+    // When selector is hidden, show it
     showToolSelector();
   }
 });
@@ -978,7 +982,16 @@ function initApp() {
   document.getElementById('canvasColorBtn').addEventListener('click', toggleCanvasColorPicker);
   document.getElementById('closeSelector').addEventListener('click', hideToolSelector);
   document.getElementById('selectedTool').addEventListener('click', () => {
-    cycleTool(1); // Next tool
+    // When clicking the tool selector, select the current tool
+    if (tools[selectedToolIndex].name === 'llm') {
+      requestCreativeAdvice();
+      hideToolSelector();
+    } else if (tools[selectedToolIndex].name === 'close') {
+      hideToolSelector();
+    } else {
+      // For drawing tools, just hide the selector
+      hideToolSelector();
+    }
   });
   
   // Color swatch event listeners (regular palette)
