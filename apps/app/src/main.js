@@ -18,7 +18,7 @@ let currentTool = 'brush';
 let currentColor = '#FE5F00';
 let canvasBackgroundColor = '#000000';
 let brushSize = 5;
-let toolbarVisible = false;
+let toolbarVisible = true;
 let toolbarRotation = 0;
 let selectedToolIndex = 0;
 let particles = [];
@@ -27,6 +27,9 @@ let pressure = 1.0;
 let undoStack = [];
 let symmetryEnabled = false;
 let symmetryLines = 4;
+let particleSystemActive = false;
+let lastShakeTime = 0;
+let audioContext = null;
 
 const tools = [
   { name: 'brush', icon: '<i class="fas fa-paint-brush"></i>', label: 'Brush' },
@@ -35,7 +38,7 @@ const tools = [
   { name: 'drip', icon: '<i class="fas fa-fill-drip"></i>', label: 'Drip Paint' },
   { name: 'lines', icon: '<i class="fas fa-slash"></i>', label: 'Lines' },
   { name: 'llm', icon: '<i class="fas fa-microphone"></i>', label: 'AI Advice' },
-  { name: 'canvascolor', icon: '<i class="fas fa-palette"></i>', label: 'Canvas Color' }
+  { name: 'particles', icon: '<i class="fas fa-sparkles"></i>', label: 'Particles' }
 ];
 
 // ===========================================
@@ -48,7 +51,7 @@ function initCanvas() {
   
   // Set canvas size for R1 device (240x282px)
   canvas.width = 240;
-  canvas.height = 230; // Leave space for toolbar
+  canvas.height = 230;
   
   // Set up canvas styling
   ctx.lineCap = 'round';
@@ -88,9 +91,9 @@ function showUndoFeedback() {
     transform: translate(-50%, -50%);
     background: rgba(254, 95, 0, 0.9);
     color: #000;
-    padding: 2vw 4vw;
-    border-radius: 2vw;
-    font-size: 4vw;
+    padding: 10px 20px;
+    border-radius: 10px;
+    font-size: 16px;
     font-weight: bold;
     z-index: 100;
     pointer-events: none;
@@ -152,13 +155,13 @@ function resetCanvas() {
   feedback.textContent = 'Reset';
   feedback.style.cssText = `
     position: fixed;
-    top: 20%;
-    right: 4vw;
+    top: 60px;
+    right: 20px;
     background: rgba(255, 255, 255, 0.9);
     color: #000;
-    padding: 2vw 3vw;
-    border-radius: 2vw;
-    font-size: 3vw;
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 12px;
     font-weight: bold;
     z-index: 100;
     pointer-events: none;
@@ -373,44 +376,102 @@ drawDripPaint.prevX = null;
 drawDripPaint.prevY = null;
 
 // ===========================================
-// Particle System (simplified for performance)
+// Particle System Implementation
 // ===========================================
 
-function createParticle(x, y, type = 'simple') {
+function initAudio() {
+  // Create audio context for sound effects
+  if (!audioContext) {
+    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+  }
+}
+
+function playPianoChord(frequencies) {
+  if (!audioContext) return;
+  
+  const now = audioContext.currentTime;
+  
+  frequencies.forEach((freq, index) => {
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    
+    oscillator.type = 'sine';
+    oscillator.frequency.value = freq;
+    
+    gainNode.gain.setValueAtTime(0.3, now);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
+    
+    oscillator.start(now);
+    oscillator.stop(now + 0.5);
+  });
+}
+
+function createParticle(x, y) {
+  // Create a light-based particle with random properties
+  const hue = Math.floor(Math.random() * 360);
+  const saturation = 70 + Math.floor(Math.random() * 30);
+  const lightness = 50 + Math.floor(Math.random() * 50);
+  
   return {
     x: x,
     y: y,
-    vx: (Math.random() - 0.5) * 2,
-    vy: (Math.random() - 0.5) * 2,
-    size: Math.random() * 2 + 1,
-    color: currentColor,
+    vx: (Math.random() - 0.5) * 4,
+    vy: (Math.random() - 0.5) * 4,
+    size: 2 + Math.random() * 8,
+    color: `hsl(${hue}, ${saturation}%, ${lightness}%)`,
     life: 1.0,
-    decay: Math.random() * 0.05 + 0.02,
-    type: type
+    decay: 0.01 + Math.random() * 0.02,
+    rotation: Math.random() * Math.PI * 2,
+    rotationSpeed: (Math.random() - 0.5) * 0.1
   };
 }
 
+function addParticles(x, y, count = 5) {
+  // Add particles at the touch position
+  for (let i = 0; i < count; i++) {
+    particles.push(createParticle(
+      x + (Math.random() - 0.5) * 20,
+      y + (Math.random() - 0.5) * 20
+    ));
+  }
+  
+  // Play a pleasant piano chord
+  const chords = [
+    [261.63, 329.63, 392.00], // C major
+    [293.66, 349.23, 440.00], // D minor
+    [329.63, 392.00, 493.88], // E minor
+    [349.23, 440.00, 523.25], // F major
+    [392.00, 493.88, 587.33], // G major
+    [440.00, 523.25, 659.25], // A minor
+    [493.88, 587.33, 698.46]  // B diminished
+  ];
+  
+  const randomChord = chords[Math.floor(Math.random() * chords.length)];
+  playPianoChord(randomChord);
+}
+
 function updateParticles() {
+  // Apply accelerometer data to particles
+  const accelFactor = 0.1;
+  
   for (let i = particles.length - 1; i >= 0; i--) {
     const p = particles[i];
     
-    // Update position
-    p.x += p.vx;
-    p.y += p.vy;
+    // Update position with velocity and accelerometer influence
+    p.x += p.vx + accelerometerData.x * accelFactor;
+    p.y += p.vy + accelerometerData.y * accelFactor;
     
-    // Apply gravity
-    p.vy += 0.05;
+    // Apply rotation
+    p.rotation += p.rotationSpeed;
     
-    // Boundary collisions
-    if (p.x <= p.size || p.x >= canvas.width - p.size) {
-      p.vx *= -0.8;
-      p.x = Math.max(p.size, Math.min(canvas.width - p.size, p.x));
-    }
-    
-    if (p.y <= p.size || p.y >= canvas.height - p.size) {
-      p.vy *= -0.8;
-      p.y = Math.max(p.size, Math.min(canvas.height - p.size, p.y));
-    }
+    // Boundary wrapping (particles reappear on opposite side)
+    if (p.x < -p.size) p.x = canvas.width + p.size;
+    if (p.x > canvas.width + p.size) p.x = -p.size;
+    if (p.y < -p.size) p.y = canvas.height + p.size;
+    if (p.y > canvas.height + p.size) p.y = -p.size;
     
     // Apply air resistance
     p.vx *= 0.98;
@@ -420,34 +481,34 @@ function updateParticles() {
     p.life -= p.decay;
     
     // Remove dead particles
-    if (p.life <= 0 || p.size <= 0.1) {
+    if (p.life <= 0) {
       particles.splice(i, 1);
     }
   }
 }
 
 function drawParticles() {
-  // Simplified particle drawing for better performance
+  // Draw all particles
   particles.forEach(p => {
+    ctx.save();
     ctx.globalAlpha = p.life;
-    ctx.fillStyle = p.color;
+    ctx.translate(p.x, p.y);
+    ctx.rotate(p.rotation);
+    
+    // Draw particle as a glowing circle
+    const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, p.size);
+    gradient.addColorStop(0, p.color);
+    gradient.addColorStop(1, 'transparent');
+    
+    ctx.fillStyle = gradient;
     ctx.beginPath();
-    ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+    ctx.arc(0, 0, p.size, 0, Math.PI * 2);
     ctx.fill();
+    
+    ctx.restore();
   });
   
   ctx.globalAlpha = 1.0;
-}
-
-function createPaintParticles(x, y, count = 3) {
-  // Reduced particle count for better performance
-  for (let i = 0; i < count * pressure; i++) {
-    particles.push(createParticle(
-      x + (Math.random() - 0.5) * 5,
-      y + (Math.random() - 0.5) * 5,
-      'simple'
-    ));
-  }
 }
 
 // ===========================================
@@ -459,21 +520,12 @@ function showToolbar() {
   const toolbar = document.getElementById('toolbar');
   toolbar.style.transform = 'translateY(0)';
   updateToolbarDisplay();
-  
-  // Auto-hide after 3 seconds of inactivity
-  clearTimeout(window.toolbarHideTimeout);
-  window.toolbarHideTimeout = setTimeout(() => {
-    if (toolbarVisible) {
-      hideToolbar();
-    }
-  }, 3000);
 }
 
 function hideToolbar() {
   toolbarVisible = false;
   const toolbar = document.getElementById('toolbar');
-  toolbar.style.transform = 'translateY(100%)';
-  clearTimeout(window.toolbarHideTimeout);
+  toolbar.style.transform = 'translateY(0)'; // Keep toolbar visible but allow hiding if needed
 }
 
 function updateToolbarDisplay() {
@@ -489,12 +541,12 @@ function updateToolbarDisplay() {
     
     // Convert to radians and calculate position
     const radian = (angle * Math.PI) / 180;
-    const radius = 20; // vw units for half-circle radius
+    const radius = 35; // Fixed radius in pixels for better spacing
     const x = Math.cos(radian) * radius;
     const y = Math.sin(radian) * radius;
     
     // Apply transform with smooth animation
-    item.style.transform = `translate(${x}vw, ${y}vw) scale(${index === selectedToolIndex ? 1.1 : 1})`;
+    item.style.transform = `translate(${x}px, ${y}px) scale(${index === selectedToolIndex ? 1.1 : 1})`;
     item.classList.toggle('selected', index === selectedToolIndex);
     
     // Add rotation animation effect
@@ -552,8 +604,13 @@ function selectTool(index) {
     case 'drip':
       symmetryEnabled = false;
       break;
+    case 'particles':
+      particleSystemActive = true;
+      initAudio();
+      break;
     default:
       symmetryEnabled = false;
+      particleSystemActive = false;
   }
   
   // Provide haptic feedback (visual pulse)
@@ -604,36 +661,6 @@ function updateColorPalette() {
   });
 }
 
-function changeCanvasColor() {
-  // Simple color picker for canvas background
-  const colors = ['#000000', '#1a1a2e', '#2a2a4a', '#4a4a6a', '#6a6a8a', '#8a8aa8', '#aaaaa8', '#ffffff'];
-  const colorNames = ['Black', 'Dark Blue', 'Dark Gray', 'Gray', 'Light Gray', 'Light Blue', 'Light Gray', 'White'];
-  
-  let colorList = '';
-  colors.forEach((color, index) => {
-    colorList += `${index + 1}. ${colorNames[index]} (${color})\n`;
-  });
-  
-  const choice = prompt(`Choose canvas background color:\n${colorList}\nEnter number (1-8):`);
-  
-  if (choice && !isNaN(choice) && choice >= 1 && choice <= 8) {
-    const selectedIndex = parseInt(choice) - 1;
-    canvasBackgroundColor = colors[selectedIndex];
-    
-    // Update canvas background
-    ctx.fillStyle = canvasBackgroundColor;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    
-    // Redraw current content
-    if (undoStack.length > 0) {
-      const currentState = undoStack[undoStack.length - 1];
-      ctx.putImageData(currentState, 0, 0);
-    }
-    
-    saveState();
-  }
-}
-
 // ===========================================
 // Event Handlers
 // ===========================================
@@ -644,9 +671,10 @@ function handleMouseDown(e) {
   const x = (e.clientX - rect.left) * (canvas.width / rect.width);
   const y = (e.clientY - rect.top) * (canvas.height / rect.height);
   
-  // Create minimal particles on drawing start for drip paint tool only
-  if (currentTool === 'drip') {
-    createPaintParticles(x, y, 1);
+  // Handle particle system
+  if (currentTool === 'particles') {
+    addParticles(x, y, 10);
+    return;
   }
   
   draw(x, y);
@@ -659,9 +687,12 @@ function handleMouseMove(e) {
   const x = (e.clientX - rect.left) * (canvas.width / rect.width);
   const y = (e.clientY - rect.top) * (canvas.height / rect.height);
   
-  // Create minimal particles during movement for drip paint tool only
-  if (currentTool === 'drip' && Math.random() < 0.3) {
-    createPaintParticles(x, y, 1);
+  // Handle particle system
+  if (currentTool === 'particles') {
+    if (Math.random() < 0.3) {
+      addParticles(x, y, 3);
+    }
+    return;
   }
   
   draw(x, y);
@@ -705,62 +736,88 @@ function draw(x, y) {
 }
 
 // ===========================================
+// Accelerometer and Shake Detection
+// ===========================================
+
+function initAccelerometer() {
+  // Check if accelerometer is available
+  if (window.DeviceMotionEvent) {
+    window.addEventListener('devicemotion', (event) => {
+      if (event.accelerationIncludingGravity) {
+        accelerometerData.x = event.accelerationIncludingGravity.x || 0;
+        accelerometerData.y = event.accelerationIncludingGravity.y || 0;
+        accelerometerData.z = event.accelerationIncludingGravity.z || 0;
+      }
+    });
+  }
+  
+  // Shake detection
+  let lastX = 0, lastY = 0, lastZ = 0;
+  let shakeThreshold = 15;
+  
+  window.addEventListener('devicemotion', (event) => {
+    if (event.accelerationIncludingGravity) {
+      const x = event.accelerationIncludingGravity.x || 0;
+      const y = event.accelerationIncludingGravity.y || 0;
+      const z = event.accelerationIncludingGravity.z || 0;
+      
+      const deltaX = Math.abs(x - lastX);
+      const deltaY = Math.abs(y - lastY);
+      const deltaZ = Math.abs(z - lastZ);
+      
+      // Update last values
+      lastX = x;
+      lastY = y;
+      lastZ = z;
+      
+      // Check for shake (but not for particle system)
+      if (currentTool !== 'particles' && (deltaX > shakeThreshold || deltaY > shakeThreshold || deltaZ > shakeThreshold)) {
+        const now = Date.now();
+        // Debounce shake events
+        if (now - lastShakeTime > 1000) {
+          lastShakeTime = now;
+          clearCanvas();
+        }
+      }
+    }
+  });
+}
+
+// ===========================================
 // R1 Hardware Event Handlers with Enhanced Toolbar Navigation
 // ===========================================
 
 window.addEventListener('scrollUp', () => {
-  if (toolbarVisible) {
-    // Navigate through tools clockwise
-    selectedToolIndex = (selectedToolIndex - 1 + tools.length) % tools.length;
-    selectTool(selectedToolIndex);
-    
-    // Add subtle rotation effect
-    rotateToolbar(-1);
-    
-    // Reset auto-hide timer
-    showToolbar();
-  } else {
-    // Show toolbar when scrolling
-    showToolbar();
-  }
+  // Navigate through tools clockwise
+  selectedToolIndex = (selectedToolIndex - 1 + tools.length) % tools.length;
+  selectTool(selectedToolIndex);
+  
+  // Add subtle rotation effect
+  rotateToolbar(-1);
 });
 
 window.addEventListener('scrollDown', () => {
-  if (toolbarVisible) {
-    // Navigate through tools counter-clockwise
-    selectedToolIndex = (selectedToolIndex + 1) % tools.length;
-    selectTool(selectedToolIndex);
-    
-    // Add subtle rotation effect
-    rotateToolbar(1);
-    
-    // Reset auto-hide timer
-    showToolbar();
-  } else {
-    // Show toolbar when scrolling
-    showToolbar();
-  }
+  // Navigate through tools counter-clockwise
+  selectedToolIndex = (selectedToolIndex + 1) % tools.length;
+  selectTool(selectedToolIndex);
+  
+  // Add subtle rotation effect
+  rotateToolbar(1);
 });
 
 window.addEventListener('sideClick', () => {
+  const selectedTool = tools[selectedToolIndex];
+  
+  // Handle special tools
+  if (selectedTool.name === 'llm') {
+    requestCreativeAdvice();
+    return;
+  }
+  
+  // Toggle toolbar visibility
   if (toolbarVisible) {
-    const selectedTool = tools[selectedToolIndex];
-    
-    // Handle special tools
-    if (selectedTool.name === 'llm') {
-      requestCreativeAdvice();
-      hideToolbar();
-      return;
-    } else if (selectedTool.name === 'canvascolor') {
-      changeCanvasColor();
-      hideToolbar();
-      return;
-    }
-    
-    // Hide toolbar after selection
     hideToolbar();
   } else {
-    // Show toolbar
     showToolbar();
   }
 });
@@ -771,6 +828,7 @@ window.addEventListener('sideClick', () => {
 
 function initApp() {
   initCanvas();
+  initAccelerometer();
   
   // Set up event listeners
   canvas.addEventListener('mousedown', handleMouseDown);
@@ -813,7 +871,6 @@ function initApp() {
   document.querySelectorAll('.tool-item').forEach((item, index) => {
     item.addEventListener('click', () => {
       selectTool(index);
-      hideToolbar();
     });
   });
   
@@ -828,13 +885,11 @@ function initApp() {
   // Initialize color palette
   updateColorPalette();
   
-  // Start simplified animation loop
+  // Start animation loop
   function animate() {
-    // Update and draw particles at a reduced rate for better performance
-    if (Math.random() < 0.3) {
-      updateParticles();
-      drawParticles();
-    }
+    // Update and draw particles
+    updateParticles();
+    drawParticles();
     requestAnimationFrame(animate);
   }
   
