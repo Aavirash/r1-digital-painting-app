@@ -725,35 +725,30 @@ function captureAndEmail() {
 }
 
 function updateColorPalette() {
-  const swatches = document.querySelectorAll('.color-swatch');
-  swatches.forEach(swatch => {
-    swatch.classList.remove('active');
-    if (swatch.dataset.color === currentColor) {
-      swatch.classList.add('active');
-    }
-  });
+  // No longer needed as we removed the right-side color palette
 }
 
 // ===========================================
-// Canvas Color Picker Functionality
+// Color Picker Functionality
 // ===========================================
 
 function toggleCanvasColorPicker() {
-  const colorPicker = document.getElementById('colorPicker');
-  const colorPalette = document.querySelector('.color-palette');
+  const canvasColorPicker = document.getElementById('canvasColorPicker');
+  const brushColorPicker = document.getElementById('brushColorPicker');
   
-  // Toggle visibility
-  if (colorPicker.style.display === 'flex') {
-    // Hide color picker, show regular palette
-    colorPicker.style.display = 'none';
-    colorPalette.style.display = 'flex';
+  // Hide brush color picker if visible
+  if (brushColorPicker.style.display === 'flex') {
+    brushColorPicker.style.display = 'none';
+  }
+  
+  // Toggle canvas color picker
+  if (canvasColorPicker.style.display === 'flex') {
+    canvasColorPicker.style.display = 'none';
   } else {
-    // Show color picker, hide regular palette
-    colorPicker.style.display = 'flex';
-    colorPalette.style.display = 'none';
+    canvasColorPicker.style.display = 'flex';
     
     // Highlight the currently selected canvas color
-    const swatches = colorPicker.querySelectorAll('.color-swatch');
+    const swatches = canvasColorPicker.querySelectorAll('.color-swatch');
     swatches.forEach(swatch => {
       if (swatch.dataset.color === canvasBackgroundColor) {
         swatch.classList.add('selected-color');
@@ -762,8 +757,33 @@ function toggleCanvasColorPicker() {
       }
     });
   }
+}
+
+function toggleBrushColorPicker() {
+  const canvasColorPicker = document.getElementById('canvasColorPicker');
+  const brushColorPicker = document.getElementById('brushColorPicker');
   
-  console.log('Toggled canvas color picker. Color picker display:', colorPicker.style.display);
+  // Hide canvas color picker if visible
+  if (canvasColorPicker.style.display === 'flex') {
+    canvasColorPicker.style.display = 'none';
+  }
+  
+  // Toggle brush color picker
+  if (brushColorPicker.style.display === 'flex') {
+    brushColorPicker.style.display = 'none';
+  } else {
+    brushColorPicker.style.display = 'flex';
+    
+    // Highlight the currently selected brush color
+    const swatches = brushColorPicker.querySelectorAll('.color-swatch');
+    swatches.forEach(swatch => {
+      if (swatch.dataset.color === currentColor) {
+        swatch.classList.add('selected-color');
+      } else {
+        swatch.classList.remove('selected-color');
+      }
+    });
+  }
 }
 
 function setCanvasBackgroundColor(color) {
@@ -773,13 +793,18 @@ function setCanvasBackgroundColor(color) {
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   saveState();
   
-  // Hide color picker and show regular palette
-  const colorPicker = document.getElementById('colorPicker');
-  const colorPalette = document.querySelector('.color-palette');
-  colorPicker.style.display = 'none';
-  colorPalette.style.display = 'flex';
+  // Hide color picker
+  document.getElementById('canvasColorPicker').style.display = 'none';
   
   console.log('Canvas background color set to:', color);
+}
+
+function setBrushColor(color) {
+  currentColor = color;
+  // Hide color picker
+  document.getElementById('brushColorPicker').style.display = 'none';
+  
+  console.log('Brush color set to:', color);
 }
 
 // ===========================================
@@ -997,7 +1022,7 @@ function initApp() {
   // Button event listeners
   document.getElementById('undoBtn').addEventListener('click', undo);
   document.getElementById('canvasColorBtn').addEventListener('click', toggleCanvasColorPicker);
-  document.getElementById('eyedropperBtn').addEventListener('click', toggleCanvasColorPicker); // Eyedropper uses same picker
+  document.getElementById('eyedropperBtn').addEventListener('click', toggleBrushColorPicker);
   document.getElementById('selectedTool').addEventListener('click', () => {
     // When clicking the tool selector, handle the current tool
     if (tools[selectedToolIndex].name === 'llm') {
@@ -1009,20 +1034,12 @@ function initApp() {
     }
   });
   
-  // Color swatch event listeners (regular palette)
-  document.querySelectorAll('.color-palette .color-swatch').forEach(swatch => {
-    swatch.addEventListener('click', () => {
-      currentColor = swatch.dataset.color;
-      updateColorPalette();
-    });
-  });
-  
   // Color swatch event listeners (canvas color picker)
-  document.querySelectorAll('#colorPicker .color-swatch').forEach(swatch => {
+  document.querySelectorAll('#canvasColorPicker .color-swatch').forEach(swatch => {
     swatch.addEventListener('click', () => {
       // Add visual feedback
-      const colorPicker = document.getElementById('colorPicker');
-      const swatches = colorPicker.querySelectorAll('.color-swatch');
+      const canvasColorPicker = document.getElementById('canvasColorPicker');
+      const swatches = canvasColorPicker.querySelectorAll('.color-swatch');
       swatches.forEach(s => s.classList.remove('selected-color'));
       swatch.classList.add('selected-color');
       
@@ -1033,8 +1050,21 @@ function initApp() {
     });
   });
   
-  // Initialize color palette
-  updateColorPalette();
+  // Color swatch event listeners (brush color picker)
+  document.querySelectorAll('#brushColorPicker .color-swatch').forEach(swatch => {
+    swatch.addEventListener('click', () => {
+      // Add visual feedback
+      const brushColorPicker = document.getElementById('brushColorPicker');
+      const swatches = brushColorPicker.querySelectorAll('.color-swatch');
+      swatches.forEach(s => s.classList.remove('selected-color'));
+      swatch.classList.add('selected-color');
+      
+      // Set brush color after a short delay for visual feedback
+      setTimeout(() => {
+        setBrushColor(swatch.dataset.color);
+      }, 200);
+    });
+  });
   
   // Initialize tool selector to show the correct default tool (brush)
   updateToolSelector();

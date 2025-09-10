@@ -164,45 +164,7 @@ html, body {
     }
 }
 
-/* Color Palette - floating with no container and better touch targets */
-.color-palette {
-    position: fixed;
-    top: 50px;
-    right: 5px;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    z-index: 15;
-    max-height: 180px;
-    overflow-y: auto;
-}
-
-.color-swatch {
-    width: 20px;
-    height: 20px;
-    border-radius: 50%;
-    border: 2px solid #2a2a4a;
-    cursor: pointer;
-    -webkit-tap-highlight-color: transparent;
-    transition: all 0.2s ease;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
-    z-index: 16;
-}
-
-.color-swatch.active {
-    border-color: #fff;
-    transform: scale(1.1);
-}
-
-.color-swatch:hover {
-    transform: scale(1.1);
-}
-
-.color-swatch:active {
-    transform: scale(0.9);
-}
-
-/* Enhanced Color Picker Popup - horizontal layout for R1 screen */
+/* Color Picker Popup - horizontal layout for R1 screen */
 .color-picker-popup {
     position: fixed;
     top: 50%;
