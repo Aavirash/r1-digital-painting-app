@@ -16,7 +16,7 @@ let canvas, ctx;
 let isDrawing = false;
 let currentTool = 'brush';
 let currentColor = '#FE5F00';
-let canvasBackgroundColor = '#000000';
+let canvasBackgroundColor = '#F2F2F2'; // Changed default to #F2F2F2
 let brushSize = 5;
 let selectedToolIndex = 0;
 let particles = [];
@@ -54,7 +54,7 @@ function initCanvas() {
   canvas.width = window.innerWidth;
   canvas.height = window.innerHeight;
   
-  // Set up canvas styling
+  // Set up canvas styling with new default color
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
   ctx.fillStyle = canvasBackgroundColor;
@@ -997,6 +997,7 @@ function initApp() {
   // Button event listeners
   document.getElementById('undoBtn').addEventListener('click', undo);
   document.getElementById('canvasColorBtn').addEventListener('click', toggleCanvasColorPicker);
+  document.getElementById('eyedropperBtn').addEventListener('click', toggleCanvasColorPicker); // Eyedropper uses same picker
   document.getElementById('selectedTool').addEventListener('click', () => {
     // When clicking the tool selector, handle the current tool
     if (tools[selectedToolIndex].name === 'llm') {
