@@ -1094,9 +1094,16 @@ window.onPluginMessage = function(data) {
     
     // Create feedback for email status
     const feedback = document.createElement('div');
-    feedback.textContent = data.message.includes('sent') || data.message.includes('success') 
-      ? 'Email sent successfully!' 
-      : 'Status: ' + data.message;
+    if (data.message.includes('sent') || data.message.includes('success') || data.message.includes('uploaded')) {
+      feedback.textContent = 'Artwork uploaded and email sent successfully!';
+    } else if (data.message.includes('upload') || data.message.includes('Upload')) {
+      feedback.textContent = 'Uploading artwork...';
+    } else if (data.message.includes('email') || data.message.includes('Email')) {
+      feedback.textContent = 'Sending email with artwork URL...';
+    } else {
+      feedback.textContent = 'Status: ' + data.message;
+    }
+    
     feedback.style.cssText = `
       position: fixed;
       top: 50%;
@@ -1156,7 +1163,7 @@ window.onPluginMessage = function(data) {
     console.log('R1 system is requesting base64 data');
     // The R1 system already has the data, this is just confirmation
     const feedback = document.createElement('div');
-    feedback.textContent = 'Uploading artwork to hosting service...';
+    feedback.textContent = 'Uploading artwork to ImgBB...';
     feedback.style.cssText = `
       position: fixed;
       top: 50%;
@@ -1385,7 +1392,7 @@ async function sendImageToR1System(imageData, email) {
   try {
     // Visual feedback
     const feedback = document.createElement('div');
-    feedback.textContent = 'Sending artwork to R1 system...';
+    feedback.textContent = 'Processing artwork...';
     feedback.style.cssText = `
       position: fixed;
       top: 50%;
@@ -1406,38 +1413,31 @@ async function sendImageToR1System(imageData, email) {
     // Extract base64 data from data URL (without the data URL prefix)
     const base64Data = imageData.split(',')[1];
     
-    // Send to R1 system with the image data and email
-    // Provide clear instructions for using an online base64 to image converter
+    // Send instructions to R1 system to upload to ImgBB API
+    feedback.textContent = 'Preparing upload to ImgBB...';
+    
     if (typeof PluginMessageHandler !== 'undefined') {
       const payload = {
-        message: `USER REQUEST: Please convert this digital artwork to a public image URL and email it to ${email}. Instructions: 1. Go to https://base64.guru/converter/decode/image 2. Paste the base64 data from the imageBase64 field into the input box 3. Click "Decode Base64 to Image" 4. Click the download link to get the public URL 5. Send that URL to ${email}`,
-        imageBase64: base64Data, // Use the dedicated imageBase64 field
+        message: `USER REQUEST: Please upload this digital artwork to ImgBB and email the public URL to ${email}. Instructions: 1. Send a POST request to https://api.imgbb.com/1/upload with API key and base64 image data 2. Extract the URL from the response 3. Send that URL to ${email}`,
+        imageBase64: base64Data,
         recipientEmail: email,
         useLLM: true,
         wantsR1Response: true,
-        action: "convertAndEmailArtwork",
-        imageFormat: "png",
-        conversionUrl: "https://base64.guru/converter/decode/image",
-        stepByStepInstructions: [
-          "Go to the conversion website",
-          "Paste the base64 data",
-          "Click decode button",
-          "Get the public URL",
-          "Send URL via email"
-        ]
+        action: "uploadToImgBBAndEmail",
+        uploadEndpoint: "https://api.imgbb.com/1/upload",
+        apiKey: "1a2fc605085e16887ec98e57fce39914", // Your ImgBB API key
+        instructions: "Send POST request with API key and base64 data to ImgBB, get URL from response, email URL to recipient"
       };
       
-      console.log('Sending image to R1 system with conversion instructions');
-      console.log('Base64 data length:', base64Data ? base64Data.length : 'undefined');
+      console.log('Sending ImgBB upload instructions to R1 system');
       
-      // Wrap in try-catch to prevent app from closing
       try {
         PluginMessageHandler.postMessage(JSON.stringify(payload));
         
         // Update feedback
         setTimeout(() => {
           if (feedback.parentNode) {
-            feedback.textContent = 'Artwork sent to R1 system for processing!';
+            feedback.textContent = 'Upload instructions sent to R1 system!';
             setTimeout(() => {
               if (feedback.parentNode) {
                 feedback.remove();
@@ -1453,9 +1453,9 @@ async function sendImageToR1System(imageData, email) {
       throw new Error('PluginMessageHandler not available - not running in R1 environment');
     }
   } catch (error) {
-    console.error('Error sending image to R1 system:', error);
+    console.error('Error processing image:', error);
     
-    let errorMessage = 'Failed to send artwork: ';
+    let errorMessage = 'Failed to process artwork: ';
     if (error.message.includes('PluginMessageHandler')) {
       errorMessage += 'Not running in R1 environment';
     } else {
