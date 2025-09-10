@@ -6,8 +6,8 @@
     <title>R1 Digital Painting App</title>
     <!-- Add Font Awesome for icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <script type="module" crossorigin src="./assets/main-C5NLIWbO.js"></script>
-  <link rel="stylesheet" crossorigin href="./assets/main-CZMri_Pl.css">
+  <script type="module" crossorigin src="./assets/main-BtLI2zpj.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/main-CaEGK7Vp.css">
 </head>
 <body>
     <!-- Floating Top Buttons -->
@@ -18,8 +18,8 @@
     <!-- Main Canvas - fills entire screen -->
     <canvas id="paintCanvas"></canvas>
 
-    <!-- Color Palette Popup (hidden by default) -->
-    <div id="colorPicker" class="color-picker-popup">
+    <!-- Canvas Color Palette Popup (hidden by default) -->
+    <div id="canvasColorPicker" class="color-picker-popup">
         <div class="color-picker-title">Select Canvas Color</div>
         <div class="color-picker-content">
             <div class="color-swatch selected-color" style="background-color: #F2F2F2;" data-color="#F2F2F2"></div>
@@ -34,16 +34,19 @@
         </div>
     </div>
 
-    <!-- Drawing Tools Palette -->
-    <div class="color-palette">
-        <div class="color-swatch" style="background-color: #FE5F00;" data-color="#FE5F00"></div>
-        <div class="color-swatch" style="background-color: #FF6B6B;" data-color="#FF6B6B"></div>
-        <div class="color-swatch" style="background-color: #4ECDC4;" data-color="#4ECDC4"></div>
-        <div class="color-swatch" style="background-color: #45B7D1;" data-color="#45B7D1"></div>
-        <div class="color-swatch" style="background-color: #96CEB4;" data-color="#96CEB4"></div>
-        <div class="color-swatch" style="background-color: #FFEAA7;" data-color="#FFEAA7"></div>
-        <div class="color-swatch" style="background-color: #DDA0DD;" data-color="#DDA0DD"></div>
-        <div class="color-swatch" style="background-color: #FFFFFF;" data-color="#FFFFFF"></div>
+    <!-- Brush Color Palette Popup (hidden by default) - shown when eyedropper is clicked -->
+    <div id="brushColorPicker" class="color-picker-popup">
+        <div class="color-picker-title">Select Brush Color</div>
+        <div class="color-picker-content">
+            <div class="color-swatch" style="background-color: #FE5F00;" data-color="#FE5F00"></div>
+            <div class="color-swatch" style="background-color: #FF6B6B;" data-color="#FF6B6B"></div>
+            <div class="color-swatch" style="background-color: #4ECDC4;" data-color="#4ECDC4"></div>
+            <div class="color-swatch" style="background-color: #45B7D1;" data-color="#45B7D1"></div>
+            <div class="color-swatch" style="background-color: #96CEB4;" data-color="#96CEB4"></div>
+            <div class="color-swatch" style="background-color: #FFEAA7;" data-color="#FFEAA7"></div>
+            <div class="color-swatch" style="background-color: #DDA0DD;" data-color="#DDA0DD"></div>
+            <div class="color-swatch" style="background-color: #FFFFFF;" data-color="#FFFFFF"></div>
+        </div>
     </div>
 
     <!-- Simplified Tool Selector - Single button that shows selected tool -->
