@@ -714,14 +714,42 @@ function requestCreativeAdvice() {
 }
 
 function captureAndEmail() {
+  // Take screenshot of canvas without UI elements
+  const imageData = canvas.toDataURL('image/png');
+  
+  // Send to LLM for email with proper instruction
   if (typeof PluginMessageHandler !== 'undefined') {
-    const imageData = canvas.toDataURL('image/png');
     const payload = {
-      message: `Please send this digital artwork to my email: ${imageData}`,
-      useLLM: true
+      message: `Please email this digital artwork to the user's email address. The artwork is attached as a PNG image with the following base64 data: ${imageData}`,
+      useLLM: true,
+      wantsR1Response: true
     };
     PluginMessageHandler.postMessage(JSON.stringify(payload));
   }
+  
+  // Visual feedback
+  const feedback = document.createElement('div');
+  feedback.textContent = 'Screenshot sent to your email!';
+  feedback.style.cssText = `
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(254, 95, 0, 0.9);
+    color: #000;
+    padding: 10px 20px;
+    border-radius: 10px;
+    font-size: 16px;
+    font-weight: bold;
+    z-index: 100;
+    pointer-events: none;
+  `;
+  
+  document.body.appendChild(feedback);
+  
+  setTimeout(() => {
+    feedback.remove();
+  }, 2000); // Show feedback for 2 seconds
 }
 
 function updateColorPalette() {
@@ -1023,17 +1051,7 @@ function initApp() {
   document.getElementById('undoBtn').addEventListener('click', undo);
   document.getElementById('canvasColorBtn').addEventListener('click', toggleCanvasColorPicker);
   document.getElementById('eyedropperBtn').addEventListener('click', toggleBrushColorPicker);
-  document.getElementById('selectedTool').addEventListener('click', () => {
-    // When clicking the tool selector, handle the current tool
-    if (tools[selectedToolIndex].name === 'llm') {
-      // For LLM tool, request creative advice
-      requestCreativeAdvice();
-    } else {
-      // For other tools, just take a screenshot
-      takeScreenshotAndSend();
-    }
-  });
-  
+
   // Color swatch event listeners (canvas color picker)
   document.querySelectorAll('#canvasColorPicker .color-swatch').forEach(swatch => {
     swatch.addEventListener('click', () => {
@@ -1120,7 +1138,7 @@ function takeScreenshotAndSend() {
   // Send to LLM for email with proper instruction
   if (typeof PluginMessageHandler !== 'undefined') {
     const payload = {
-      message: `Please email this digital artwork to the user's email address: ${imageData}`,
+      message: `Please email this digital artwork to the user's email address. The artwork is attached as a PNG image with the following base64 data: ${imageData}`,
       useLLM: true,
       wantsR1Response: true
     };
