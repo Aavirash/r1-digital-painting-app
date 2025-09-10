@@ -1128,6 +1128,37 @@ window.onPluginMessage = function(data) {
   console.log('Received plugin message:', data);
   // Handle any plugin messages here to prevent default behavior
   // This should prevent the app from closing unexpectedly
+  
+  // Check if this is a response to our email request
+  if (data && data.message && data.message.includes('email')) {
+    // Create feedback for email status
+    const feedback = document.createElement('div');
+    feedback.textContent = data.message.includes('sent') || data.message.includes('success') 
+      ? 'Email sent successfully!' 
+      : 'Email status: ' + data.message;
+    feedback.style.cssText = `
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(254, 95, 0, 0.9);
+      color: #000;
+      padding: 10px 20px;
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: bold;
+      z-index: 100;
+      pointer-events: none;
+    `;
+    
+    document.body.appendChild(feedback);
+    
+    setTimeout(() => {
+      if (feedback.parentNode) {
+        feedback.remove();
+      }
+    }, 3000);
+  }
 };
 
 // Close advice overlay when clicked
@@ -1178,17 +1209,45 @@ async function uploadImageToCatboxAndEmail(imageData, feedbackElement) {
     
     // Upload to catbox.moe
     feedbackElement.textContent = 'Uploading artwork...';
+    console.log('Starting upload to catbox.moe');
+    
     const response = await fetch('https://catbox.moe/user/api.php', {
       method: 'POST',
       body: formData
     });
     
     if (!response.ok) {
-      throw new Error('Upload failed');
+      throw new Error('Upload failed with status: ' + response.status);
     }
     
     const imageUrl = await response.text();
+    console.log('Image uploaded successfully. URL:', imageUrl);
+    
+    // Validate that we got a proper URL
+    if (!imageUrl || !imageUrl.startsWith('http')) {
+      throw new Error('Invalid image URL received from catbox');
+    }
+    
+    // Now that we have the image URL, send it via email
     feedbackElement.textContent = 'Sending email...';
+    await sendEmailWithImage(imageUrl, feedbackElement);
+    
+  } catch (error) {
+    console.error('Error in upload and email process:', error);
+    if (feedbackElement && feedbackElement.parentNode) {
+      feedbackElement.textContent = 'Upload failed: ' + error.message;
+      setTimeout(() => {
+        if (feedbackElement && feedbackElement.parentNode) {
+          feedbackElement.remove();
+        }
+      }, 3000);
+    }
+  }
+}
+
+async function sendEmailWithImage(imageUrl, feedbackElement) {
+  try {
+    console.log('Sending email with image URL:', imageUrl);
     
     // Send to LLM for email with image URL
     if (typeof PluginMessageHandler !== 'undefined') {
@@ -1198,23 +1257,34 @@ async function uploadImageToCatboxAndEmail(imageData, feedbackElement) {
         useLLM: true,
         wantsR1Response: true
       };
+      
+      console.log('Sending payload to PluginMessageHandler:', payload);
       PluginMessageHandler.postMessage(JSON.stringify(payload));
-    }
-    
-    // Update feedback
-    setTimeout(() => {
-      feedbackElement.textContent = 'Email sent successfully!';
+      
+      // Update feedback
       setTimeout(() => {
-        feedbackElement.remove();
-      }, 2000);
-    }, 1000);
-    
+        if (feedbackElement && feedbackElement.parentNode) {
+          feedbackElement.textContent = 'Email requested successfully!';
+          setTimeout(() => {
+            if (feedbackElement && feedbackElement.parentNode) {
+              feedbackElement.remove();
+            }
+          }, 2000);
+        }
+      }, 1000);
+    } else {
+      throw new Error('PluginMessageHandler not available - not running in R1 environment');
+    }
   } catch (error) {
-    console.error('Error uploading image:', error);
-    feedbackElement.textContent = 'Error sending email';
-    setTimeout(() => {
-      feedbackElement.remove();
-    }, 2000);
+    console.error('Error sending email:', error);
+    if (feedbackElement && feedbackElement.parentNode) {
+      feedbackElement.textContent = 'Email request failed: ' + error.message;
+      setTimeout(() => {
+        if (feedbackElement && feedbackElement.parentNode) {
+          feedbackElement.remove();
+        }
+      }, 3000);
+    }
   }
 }
 
