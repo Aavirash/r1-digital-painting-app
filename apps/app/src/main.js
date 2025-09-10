@@ -1134,23 +1134,21 @@ document.addEventListener('click', (e) => {
 function takeScreenshotAndSend() {
   // Take screenshot of canvas without UI elements
   const imageData = canvas.toDataURL('image/png');
+  // Extract just the base64 part (remove the data:image/png;base64, prefix)
+  const imageBase64 = imageData.split(',')[1];
   
   // Log the data size for debugging
-  console.log('Image data size:', imageData.length, 'characters');
+  console.log('Image data size:', imageBase64.length, 'characters');
   
   // Send to LLM for email with proper instruction
   if (typeof PluginMessageHandler !== 'undefined') {
     const payload = {
-      message: `Please send an email with the following details:
-Subject: Your Digital Artwork from R1
-Body: Your digital artwork is attached as a PNG image.
-Generated: ${new Date().toLocaleString()}
-
-Image Data (PNG format): ${imageData}`,
+      message: "Please send this digital artwork as an email attachment to the user's email address. The image is provided as base64 data.",
+      imageBase64: imageBase64,
       useLLM: true,
       wantsR1Response: true
     };
-    console.log('Sending payload to PluginMessageHandler:', JSON.stringify(payload).substring(0, 200) + '...');
+    console.log('Sending payload to PluginMessageHandler with imageBase64 field');
     PluginMessageHandler.postMessage(JSON.stringify(payload));
   } else {
     console.error('PluginMessageHandler is not available');
