@@ -1088,20 +1088,27 @@ window.handleLLMResponse = function(response) {
 window.onPluginMessage = function(data) {
   console.log('Received plugin message:', data);
   
-  // Check if this is a response to our email request
+  // Check if this is a response to our upload request
   if (data && data.message) {
     console.log('Processing message response:', data.message);
     
-    // Create feedback for email status
+    // Create feedback for different stages of the process
     const feedback = document.createElement('div');
-    if (data.message.includes('sent') || data.message.includes('success') || data.message.includes('uploaded')) {
-      feedback.textContent = 'Artwork uploaded and email sent successfully!';
+    
+    if (data.message.includes('uploaded') || data.message.includes('Upload complete')) {
+      feedback.textContent = 'Artwork uploaded successfully!';
+    } else if (data.message.includes('email sent') || data.message.includes('Email sent')) {
+      feedback.textContent = 'Email with artwork URL sent successfully!';
     } else if (data.message.includes('upload') || data.message.includes('Upload')) {
-      feedback.textContent = 'Uploading artwork...';
+      feedback.textContent = 'Uploading artwork to ImgBB...';
     } else if (data.message.includes('email') || data.message.includes('Email')) {
       feedback.textContent = 'Sending email with artwork URL...';
+    } else if (data.message.includes('error') || data.message.includes('Error')) {
+      feedback.textContent = 'Error: ' + data.message;
+      feedback.style.background = 'rgba(255, 0, 0, 0.9)';
+      feedback.style.color = 'white';
     } else {
-      feedback.textContent = 'Status: ' + data.message;
+      feedback.textContent = data.message;
     }
     
     feedback.style.cssText = `
@@ -1128,42 +1135,12 @@ window.onPluginMessage = function(data) {
     }, 3000);
   }
   
-  // Handle special cases - when R1 system is working on the request
+  // Handle processing status updates
   if (data && (data.status || data.processing || data.working)) {
     console.log('R1 system is processing request');
     // Create feedback to inform user
     const feedback = document.createElement('div');
-    feedback.textContent = 'R1 system is processing your request...';
-    feedback.style.cssText = `
-      position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      background: rgba(254, 95, 0, 0.9);
-      color: #000;
-      padding: 10px 20px;
-      border-radius: 10px;
-      font-size: 16px;
-      font-weight: bold;
-      z-index: 100;
-      pointer-events: none;
-    `;
-    
-    document.body.appendChild(feedback);
-    
-    setTimeout(() => {
-      if (feedback.parentNode) {
-        feedback.remove();
-      }
-    }, 3000);
-  }
-  
-  // Handle upload requests
-  if (data && data.request === "base64_data") {
-    console.log('R1 system is requesting base64 data');
-    // The R1 system already has the data, this is just confirmation
-    const feedback = document.createElement('div');
-    feedback.textContent = 'Uploading artwork to ImgBB...';
+    feedback.textContent = 'Processing artwork...';
     feedback.style.cssText = `
       position: fixed;
       top: 50%;
@@ -1413,23 +1390,21 @@ async function sendImageToR1System(imageData, email) {
     // Extract base64 data from data URL (without the data URL prefix)
     const base64Data = imageData.split(',')[1];
     
-    // Send instructions to R1 system to upload to ImgBB API
-    feedback.textContent = 'Preparing upload to ImgBB...';
+    // Send clear instructions to R1 system to handle the upload and email directly
+    feedback.textContent = 'Sending to R1 system for processing...';
     
     if (typeof PluginMessageHandler !== 'undefined') {
       const payload = {
-        message: `USER REQUEST: Please upload this digital artwork to ImgBB and email the public URL to ${email}. Instructions: 1. Send a POST request to https://api.imgbb.com/1/upload with API key and base64 image data 2. Extract the URL from the response 3. Send that URL to ${email}`,
+        message: `SYSTEM INSTRUCTION: Upload digital artwork to ImgBB and email URL to ${email}`,
         imageBase64: base64Data,
         recipientEmail: email,
-        useLLM: true,
-        wantsR1Response: true,
         action: "uploadToImgBBAndEmail",
         uploadEndpoint: "https://api.imgbb.com/1/upload",
-        apiKey: "1a2fc605085e16887ec98e57fce39914", // Your ImgBB API key
-        instructions: "Send POST request with API key and base64 data to ImgBB, get URL from response, email URL to recipient"
+        apiKey: "1a2fc605085e16887ec98e57fce39914",
+        instructions: "1. Make POST request to uploadEndpoint with apiKey and imageBase64 2. Parse response to get URL 3. Send email to recipientEmail with URL"
       };
       
-      console.log('Sending ImgBB upload instructions to R1 system');
+      console.log('Sending direct upload instructions to R1 system');
       
       try {
         PluginMessageHandler.postMessage(JSON.stringify(payload));
@@ -1437,7 +1412,7 @@ async function sendImageToR1System(imageData, email) {
         // Update feedback
         setTimeout(() => {
           if (feedback.parentNode) {
-            feedback.textContent = 'Upload instructions sent to R1 system!';
+            feedback.textContent = 'Processing artwork...';
             setTimeout(() => {
               if (feedback.parentNode) {
                 feedback.remove();
