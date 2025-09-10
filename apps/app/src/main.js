@@ -1390,71 +1390,41 @@ async function sendImageToR1System(imageData, email) {
     // Extract base64 data from data URL (without the data URL prefix)
     const base64Data = imageData.split(',')[1];
     
-    // Make direct API call to ImgBB
-    feedback.textContent = 'Uploading artwork to ImgBB...';
+    // Due to R1 device security restrictions, we cannot make direct external API calls
+    // Instead, we send the image data to the R1 system which will handle the upload
+    feedback.textContent = 'Sending artwork to R1 system...';
     
-    try {
-      // Upload directly to ImgBB
-      const url = await uploadToImgBBDirectly(base64Data);
+    // Send image data to R1 system for secure upload and email
+    if (typeof PluginMessageHandler !== 'undefined') {
+      const payload = {
+        message: `Please upload this digital artwork to ImgBB and email the public URL to ${email}. Use API key: 1a2fc605085e16887ec98e57fce39914`,
+        imageBase64: base64Data,
+        recipientEmail: email,
+        action: "uploadToImgBBAndEmail"
+      };
       
-      if (url) {
-        // If successful, send email directly
-        feedback.textContent = 'Upload successful, sending email...';
+      console.log('Sending image data to R1 system for secure processing');
+      
+      try {
+        PluginMessageHandler.postMessage(JSON.stringify(payload));
         
-        // Send email instruction to R1 system
-        if (typeof PluginMessageHandler !== 'undefined') {
-          const payload = {
-            message: `Please send an email to ${email} with the following artwork URL: ${url}`,
-            action: "sendEmailWithURL",
-            url: url,
-            recipientEmail: email
-          };
-          
-          PluginMessageHandler.postMessage(JSON.stringify(payload));
-          
-          setTimeout(() => {
-            if (feedback.parentNode) {
-              feedback.textContent = 'Email sent successfully!';
-              setTimeout(() => {
-                if (feedback.parentNode) {
-                  feedback.remove();
-                }
-              }, 3000);
-            }
-          }, 1000);
-        }
-        return;
+        // Update feedback
+        setTimeout(() => {
+          if (feedback.parentNode) {
+            feedback.textContent = 'R1 system is processing your request...';
+            setTimeout(() => {
+              if (feedback.parentNode) {
+                feedback.remove();
+              }
+            }, 3000);
+          }
+        }, 1000);
+      } catch (postError) {
+        console.error('Error posting message to PluginMessageHandler:', postError);
+        throw new Error('Failed to communicate with R1 system');
       }
-    } catch (directUploadError) {
-      console.error('Direct upload failed:', directUploadError);
-      
-      // Show error feedback
-      const errorFeedback = document.createElement('div');
-      errorFeedback.textContent = 'Failed to upload artwork: ' + directUploadError.message;
-      errorFeedback.style.cssText = `
-        position: fixed;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        background: rgba(255, 0, 0, 0.9);
-        color: white;
-        padding: 10px 20px;
-        border-radius: 10px;
-        font-size: 12px;
-        font-weight: bold;
-        z-index: 100;
-        pointer-events: none;
-        max-width: 80%;
-        text-align: center;
-      `;
-      
-      document.body.appendChild(errorFeedback);
-      
-      setTimeout(() => {
-        if (errorFeedback.parentNode) {
-          errorFeedback.remove();
-        }
-      }, 5000);
+    } else {
+      throw new Error('PluginMessageHandler not available - not running in R1 environment');
     }
   } catch (error) {
     console.error('Error processing image:', error);
@@ -1493,41 +1463,6 @@ async function sendImageToR1System(imageData, email) {
         errorFeedback.remove();
       }
     }, 5000);
-  }
-}
-
-// Function to make direct ImgBB upload
-async function uploadToImgBBDirectly(base64Data) {
-  try {
-    // Create form data
-    const formData = new FormData();
-    formData.append('key', '1a2fc605085e16887ec98e57fce39914');
-    formData.append('image', base64Data);
-    
-    // Make API request
-    const response = await fetch('https://api.imgbb.com/1/upload', {
-      method: 'POST',
-      body: formData
-    });
-    
-    // Check if response is OK
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    
-    // Parse response
-    const result = await response.json();
-    
-    if (result.success) {
-      console.log('Upload successful!');
-      console.log('Image URL:', result.data.url);
-      return result.data.url;
-    } else {
-      throw new Error('Upload failed: ' + (result.error?.message || 'Unknown error'));
-    }
-  } catch (error) {
-    console.error('Error uploading to ImgBB directly:', error);
-    throw error;
   }
 }
 

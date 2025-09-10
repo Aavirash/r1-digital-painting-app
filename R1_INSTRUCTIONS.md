@@ -4,13 +4,10 @@ When the user presses the PTT button in the digital painting app, the system wil
 
 ```json
 {
-  "message": "SYSTEM INSTRUCTION: Upload digital artwork to ImgBB and email URL to [user@email.com]",
+  "message": "Please upload this digital artwork to ImgBB and email the public URL to [user@email.com]. Use API key: 1a2fc605085e16887ec98e57fce39914",
   "imageBase64": "[base64_encoded_image_data]",
   "recipientEmail": "[user@email.com]",
-  "action": "uploadToImgBBAndEmail",
-  "uploadEndpoint": "https://api.imgbb.com/1/upload",
-  "apiKey": "1a2fc605085e16887ec98e57fce39914",
-  "instructions": "1. Make POST request to uploadEndpoint with apiKey and imageBase64 2. Parse response to get URL 3. Send email to recipientEmail with URL"
+  "action": "uploadToImgBBAndEmail"
 }
 ```
 
@@ -26,6 +23,10 @@ When the user presses the PTT button in the digital painting app, the system wil
      - `image`: The base64 encoded image data
 4. **Parse the response** to extract the public URL
 5. **Send an email** to the address in `recipientEmail` with the public URL
+
+## Important Security Note:
+
+Due to security restrictions on the R1 device, direct external API calls from the plugin webview are blocked. The R1 system must handle all external API calls securely through its runtime environment.
 
 ## ImgBB API Response Format:
 
