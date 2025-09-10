@@ -1088,9 +1088,6 @@ window.handleLLMResponse = function(response) {
 window.onPluginMessage = function(data) {
   console.log('Received plugin message:', data);
   
-  // Always prevent default behavior to stop app from closing
-  // Handle any plugin messages here
-  
   // Check if this is a response to our email request
   if (data && data.message) {
     // Create feedback for email status
@@ -1123,13 +1120,62 @@ window.onPluginMessage = function(data) {
   }
   
   // Prevent default behavior that might close the app
-  if (data && data.preventDefault) {
-    data.preventDefault();
-  }
-  
-  // Return false to prevent any default handling that might close the app
+  // Return false to indicate we've handled the message
   return false;
 };
+
+// Make sure to also prevent the default event behavior
+if (typeof window !== 'undefined') {
+  // Override any existing handler
+  const originalHandler = window.onPluginMessage;
+  window.onPluginMessage = function(data) {
+    // Call original handler if it exists
+    if (originalHandler) {
+      try {
+        originalHandler.call(this, data);
+      } catch (e) {
+        console.error('Error in original onPluginMessage handler:', e);
+      }
+    }
+    
+    // Our handler logic
+    console.log('Received plugin message (handled by digital painting app):', data);
+    
+    // Check if this is a response to our email request
+    if (data && data.message) {
+      // Create feedback for email status
+      const feedback = document.createElement('div');
+      feedback.textContent = data.message.includes('sent') || data.message.includes('success') 
+        ? 'Email sent successfully!' 
+        : 'Status: ' + data.message;
+      feedback.style.cssText = `
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: rgba(254, 95, 0, 0.9);
+        color: #000;
+        padding: 10px 20px;
+        border-radius: 10px;
+        font-size: 16px;
+        font-weight: bold;
+        z-index: 100;
+        pointer-events: none;
+      `;
+      
+      document.body.appendChild(feedback);
+      
+      setTimeout(() => {
+        if (feedback.parentNode) {
+          feedback.remove();
+        }
+      }, 3000);
+    }
+    
+    // Prevent default behavior that might close the app
+    return false;
+  };
+}
 
 // Close advice overlay when clicked
 document.addEventListener('click', (e) => {
@@ -1316,17 +1362,23 @@ async function sendImageToR1System(imageData, email) {
         imageBase64: base64Data, // Use the dedicated imageBase64 field
         recipientEmail: email,
         useLLM: true,
-        wantsR1Response: true,
-        action: "sendEmailWithArtwork"
+        wantsR1Response: true
       };
       
       console.log('Sending image to R1 system for email processing');
-      PluginMessageHandler.postMessage(JSON.stringify(payload));
+      
+      // Wrap in try-catch to prevent app from closing
+      try {
+        PluginMessageHandler.postMessage(JSON.stringify(payload));
+      } catch (postError) {
+        console.error('Error posting message to PluginMessageHandler:', postError);
+        throw new Error('Failed to communicate with R1 system');
+      }
       
       // Update feedback
       setTimeout(() => {
         if (feedback.parentNode) {
-          feedback.textContent = 'Artwork sent to R1 system!';
+          feedback.textContent = 'Artwork sent to R1 system for email processing!';
           setTimeout(() => {
             if (feedback.parentNode) {
               feedback.remove();
