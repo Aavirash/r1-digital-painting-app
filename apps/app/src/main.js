@@ -1121,6 +1121,14 @@ window.onPluginMessage = function(data) {
       }
     }, 3000);
   }
+  
+  // Prevent default behavior that might close the app
+  if (data && data.preventDefault) {
+    data.preventDefault();
+  }
+  
+  // Return false to prevent any default handling that might close the app
+  return false;
 };
 
 // Close advice overlay when clicked
@@ -1231,7 +1239,8 @@ function showEmailPrompt(imageData) {
     const email = emailInput.value.trim();
     if (email && isValidEmail(email)) {
       overlay.remove();
-      uploadAndEmail(imageData, email);
+      // Send image directly to R1 system (no catbox upload from webview)
+      sendImageToR1System(imageData, email);
     } else {
       // Show error
       const error = document.createElement('div');
@@ -1275,200 +1284,100 @@ function isValidEmail(email) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
-async function uploadAndEmail(imageData, email) {
-  // Visual feedback
-  const feedback = document.createElement('div');
-  feedback.textContent = 'Processing artwork...';
-  feedback.style.cssText = `
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    background: rgba(254, 95, 0, 0.9);
-    color: #000;
-    padding: 10px 20px;
-    border-radius: 10px;
-    font-size: 16px;
-    font-weight: bold;
-    z-index: 100;
-    pointer-events: none;
-  `;
-  
-  document.body.appendChild(feedback);
-  
+async function sendImageToR1System(imageData, email) {
   try {
-    // Convert data URL to Blob
-    const blob = dataURLToBlob(imageData);
+    // Visual feedback
+    const feedback = document.createElement('div');
+    feedback.textContent = 'Sending artwork to R1 system...';
+    feedback.style.cssText = `
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(254, 95, 0, 0.9);
+      color: #000;
+      padding: 10px 20px;
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: bold;
+      z-index: 100;
+      pointer-events: none;
+    `;
     
-    // Create FormData for catbox upload
-    const formData = new FormData();
-    formData.append('fileToUpload', blob, 'artwork.png');
-    formData.append('reqtype', 'fileupload');
+    document.body.appendChild(feedback);
     
-    // Upload to catbox.moe
-    feedback.textContent = 'Uploading artwork...';
-    console.log('Starting upload to catbox.moe');
+    // Extract base64 data from data URL (without the data URL prefix)
+    const base64Data = imageData.split(',')[1];
     
-    // Add timeout to the fetch request
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
-    
-    const response = await fetch('https://catbox.moe/user/api.php', {
-      method: 'POST',
-      body: formData,
-      signal: controller.signal
-    });
-    
-    clearTimeout(timeoutId);
-    
-    if (!response.ok) {
-      throw new Error(`Upload failed with status: ${response.status} - ${response.statusText}`);
-    }
-    
-    const imageUrl = await response.text();
-    console.log('Image uploaded successfully. URL:', imageUrl);
-    
-    // Validate that we got a proper URL
-    if (!imageUrl || !imageUrl.startsWith('http')) {
-      throw new Error('Invalid image URL received from catbox: ' + imageUrl);
-    }
-    
-    // Now send email with the image URL
-    feedback.textContent = 'Sending email...';
-    await sendEmailWithUrl(imageUrl, email, feedback);
-    
-  } catch (error) {
-    console.error('Error in upload and email process:', error);
-    
-    // More detailed error reporting
-    let errorMessage = 'Failed: ';
-    if (error.name === 'AbortError') {
-      errorMessage += 'Upload timed out. Check internet connection.';
-    } else if (error.message.includes('Failed to fetch')) {
-      errorMessage += 'Network error. R1 may block external uploads.';
-    } else if (error.message.includes('Upload failed')) {
-      errorMessage += 'Upload server error. Try again later.';
-    } else {
-      errorMessage += error.message;
-    }
-    
-    if (feedback.parentNode) {
-      feedback.textContent = errorMessage;
-      // Make error message stay longer so user can read it
-      setTimeout(() => {
-        if (feedback.parentNode) {
-          feedback.remove();
-        }
-      }, 8000);
-    }
-  }
-}
-
-async function sendEmailWithUrl(imageUrl, email, feedbackElement) {
-  try {
-    console.log('Sending email with image URL:', imageUrl, 'to:', email);
-    
-    // Try to send through R1 system first
+    // Send to R1 system with the image data and email
     if (typeof PluginMessageHandler !== 'undefined') {
       const payload = {
-        message: `Please send an email to ${email} with the digital artwork. The artwork can be viewed at: ${imageUrl}`,
-        imageUrl: imageUrl,
+        message: `Please send an email with the digital artwork to ${email}`,
+        imageBase64: base64Data, // Use the dedicated imageBase64 field
         recipientEmail: email,
         useLLM: true,
         wantsR1Response: true,
         action: "sendEmailWithArtwork"
       };
       
-      console.log('Sending payload to PluginMessageHandler:', payload);
+      console.log('Sending image to R1 system for email processing');
       PluginMessageHandler.postMessage(JSON.stringify(payload));
       
       // Update feedback
       setTimeout(() => {
-        if (feedbackElement.parentNode) {
-          feedbackElement.textContent = 'Email request sent to R1 system!';
+        if (feedback.parentNode) {
+          feedback.textContent = 'Artwork sent to R1 system!';
           setTimeout(() => {
-            if (feedbackElement.parentNode) {
-              feedbackElement.remove();
+            if (feedback.parentNode) {
+              feedback.remove();
             }
-          }, 2000);
+          }, 3000);
         }
       }, 1000);
     } else {
-      // Browser fallback - show URL and instructions
-      showUrlAndInstructions(imageUrl, feedbackElement);
+      throw new Error('PluginMessageHandler not available - not running in R1 environment');
     }
   } catch (error) {
-    console.error('Error sending email:', error);
-    // Fallback to showing URL
-    showUrlAndInstructions(imageUrl, feedbackElement);
-  }
-}
-
-function showUrlAndInstructions(imageUrl, feedbackElement) {
-  // Remove the feedback element
-  if (feedbackElement.parentNode) {
-    feedbackElement.remove();
-  }
-  
-  // Show the URL and instructions
-  const urlOverlay = document.createElement('div');
-  urlOverlay.style.cssText = `
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.95);
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    z-index: 1000;
-    padding: 20px;
-    color: white;
-    font-size: 12px;
-    text-align: center;
-  `;
-  
-  urlOverlay.innerHTML = `
-    <h3 style="color: #FE5F00; margin-bottom: 15px;">Artwork Uploaded Successfully!</h3>
-    <p style="margin-bottom: 15px;">Your artwork has been uploaded to a public URL:</p>
-    <div style="background: #2a2a4a; padding: 10px; border-radius: 5px; 
-                border: 1px solid #FE5F00; word-break: break-all; 
-                font-size: 10px; margin-bottom: 20px; width: 90%;">
-      ${imageUrl}
-    </div>
-    <p style="margin-bottom: 15px; color: #FE5F00;">How to share via email:</p>
-    <ol style="text-align: left; margin-bottom: 20px; padding-left: 20px; font-size: 11px;">
-      <li>Copy the URL above (long press on mobile)</li>
-      <li>Open your email app</li>
-      <li>Create a new email</li>
-      <li>Paste the URL in the message body</li>
-      <li>Send to your friends!</li>
-    </ol>
-    <p style="font-size: 10px; margin-bottom: 20px; color: #aaa;">
-      Note: On R1 device, the system will automatically send the email.
-    </p>
-    <button id="closeUrlOverlay" style="
+    console.error('Error sending image to R1 system:', error);
+    
+    let errorMessage = 'Failed to send artwork: ';
+    if (error.message.includes('PluginMessageHandler')) {
+      errorMessage += 'Not running in R1 environment';
+    } else {
+      errorMessage += error.message;
+    }
+    
+    // Show error feedback
+    const errorFeedback = document.createElement('div');
+    errorFeedback.textContent = errorMessage;
+    errorFeedback.style.cssText = `
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(255, 0, 0, 0.9);
+      color: white;
       padding: 10px 20px;
-      background: #FE5F00;
-      color: black;
-      border: none;
-      border-radius: 5px;
+      border-radius: 10px;
+      font-size: 12px;
       font-weight: bold;
-      cursor: pointer;
-    ">Close</button>
-  `;
-  
-  document.body.appendChild(urlOverlay);
-  
-  // Add close button event
-  document.getElementById('closeUrlOverlay').addEventListener('click', () => {
-    urlOverlay.remove();
-  });
+      z-index: 100;
+      pointer-events: none;
+      max-width: 80%;
+      text-align: center;
+    `;
+    
+    document.body.appendChild(errorFeedback);
+    
+    setTimeout(() => {
+      if (errorFeedback.parentNode) {
+        errorFeedback.remove();
+      }
+    }, 5000);
+  }
 }
 
-// Helper function to convert data URL to Blob
+// Keep the dataURLToBlob function as it's still needed
 function dataURLToBlob(dataURL) {
   const parts = dataURL.split(';base64,');
   const contentType = parts[0].split(':')[1];
@@ -1482,3 +1391,6 @@ function dataURLToBlob(dataURL) {
   
   return new Blob([ab], { type: contentType });
 }
+
+// Remove the old upload functions that tried to upload to catbox directly from the webview
+
