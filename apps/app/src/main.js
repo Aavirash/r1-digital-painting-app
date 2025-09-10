@@ -16,6 +16,7 @@ let canvas, ctx;
 let isDrawing = false;
 let currentTool = 'brush';
 let currentColor = '#FE5F00';
+let canvasBackgroundColor = '#000000';
 let brushSize = 5;
 let toolbarVisible = false;
 let toolbarRotation = 0;
@@ -31,10 +32,10 @@ const tools = [
   { name: 'brush', icon: '<i class="fas fa-paint-brush"></i>', label: 'Brush' },
   { name: 'kaleidoscope', icon: '<i class="fas fa-magic"></i>', label: 'Kaleidoscope' },
   { name: 'symmetry', icon: '<i class="fas fa-sync-alt"></i>', label: 'Symmetry' },
-  { name: 'eraser', icon: '<i class="fas fa-eraser"></i>', label: 'Eraser' },
+  { name: 'drip', icon: '<i class="fas fa-fill-drip"></i>', label: 'Drip Paint' },
   { name: 'lines', icon: '<i class="fas fa-slash"></i>', label: 'Lines' },
   { name: 'llm', icon: '<i class="fas fa-microphone"></i>', label: 'AI Advice' },
-  { name: 'palette', icon: '<i class="fas fa-palette"></i>', label: 'Palette' }
+  { name: 'canvascolor', icon: '<i class="fas fa-palette"></i>', label: 'Canvas Color' }
 ];
 
 // ===========================================
@@ -52,7 +53,7 @@ function initCanvas() {
   // Set up canvas styling
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
-  ctx.fillStyle = '#000';
+  ctx.fillStyle = canvasBackgroundColor;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   
   // Save initial state for undo
@@ -123,14 +124,12 @@ function clearCanvas() {
         requestAnimationFrame(clearStep);
       } else {
         // Final clear
-        ctx.fillStyle = '#000';
+        ctx.fillStyle = canvasBackgroundColor;
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         saveState();
         
         // Reset drawing state
         if (drawSymmetry.prevPositions) drawSymmetry.prevPositions = [];
-        erase.prevX = null;
-        erase.prevY = null;
       }
     };
     
@@ -140,14 +139,12 @@ function clearCanvas() {
 
 function resetCanvas() {
   // Quick reset without animation - for reset button
-  ctx.fillStyle = '#000';
+  ctx.fillStyle = canvasBackgroundColor;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   saveState();
   
   // Reset all drawing states
   if (drawSymmetry.prevPositions) drawSymmetry.prevPositions = [];
-  erase.prevX = null;
-  erase.prevY = null;
   particles.length = 0;
   
   // Show reset feedback
@@ -183,7 +180,7 @@ function drawBrush(x, y) {
   ctx.strokeStyle = currentColor;
   ctx.lineWidth = brushSize * pressure;
   
-  // Simple geometric brush stroke
+  // Clean pencil-like brush stroke with no drip effect
   if (drawBrush.prevX !== null && drawBrush.prevY !== null) {
     ctx.beginPath();
     ctx.moveTo(drawBrush.prevX, drawBrush.prevY);
@@ -327,30 +324,41 @@ function drawLines(x, y) {
   drawLines.prevY = y;
 }
 
-function erase(x, y) {
-  ctx.globalCompositeOperation = 'destination-out';
-  ctx.strokeStyle = 'rgba(0,0,0,1)';
-  ctx.lineWidth = brushSize * pressure * 1.5;
+function drawDripPaint(x, y) {
+  ctx.fillStyle = currentColor;
+  ctx.strokeStyle = currentColor;
+  ctx.lineWidth = brushSize * pressure;
   
-  // Draw clean geometric eraser line
-  if (erase.prevX !== null && erase.prevY !== null) {
+  // Draw the main stroke
+  if (drawDripPaint.prevX !== null && drawDripPaint.prevY !== null) {
     ctx.beginPath();
-    ctx.moveTo(erase.prevX, erase.prevY);
+    ctx.moveTo(drawDripPaint.prevX, drawDripPaint.prevY);
     ctx.lineTo(x, y);
     ctx.stroke();
   }
   
   // Draw circle at current position
   ctx.beginPath();
-  ctx.arc(x, y, brushSize * pressure * 0.75, 0, Math.PI * 2);
+  ctx.arc(x, y, brushSize * pressure * 0.5, 0, Math.PI * 2);
   ctx.fill();
   
-  // Reset composite operation
-  ctx.globalCompositeOperation = 'source-over';
+  // Add drip effect occasionally
+  if (Math.random() < 0.1 * pressure) {
+    const dripCount = Math.floor(Math.random() * 3) + 1;
+    for (let i = 0; i < dripCount; i++) {
+      const dripX = x + (Math.random() - 0.5) * brushSize;
+      const dripLength = brushSize * (Math.random() * 2 + 1) * pressure;
+      
+      ctx.beginPath();
+      ctx.moveTo(dripX, y);
+      ctx.lineTo(dripX, y + dripLength);
+      ctx.stroke();
+    }
+  }
   
   // Store current position for next draw call
-  erase.prevX = x;
-  erase.prevY = y;
+  drawDripPaint.prevX = x;
+  drawDripPaint.prevY = y;
 }
 
 // Initialize previous positions for drawing functions
@@ -361,8 +369,8 @@ drawKaleidoscope.prevY = null;
 drawSymmetry.prevPositions = [];
 drawLines.prevX = null;
 drawLines.prevY = null;
-erase.prevX = null;
-erase.prevY = null;
+drawDripPaint.prevX = null;
+drawDripPaint.prevY = null;
 
 // ===========================================
 // Particle System (simplified for performance)
@@ -541,7 +549,7 @@ function selectTool(index) {
     case 'lines':
       symmetryEnabled = false;
       break;
-    case 'eraser':
+    case 'drip':
       symmetryEnabled = false;
       break;
     default:
@@ -596,14 +604,32 @@ function updateColorPalette() {
   });
 }
 
-function activateTextTool() {
-  // Simple text input for R1 device
-  const text = prompt('Enter text to add:') || 'Hello R1!';
-  if (text) {
-    ctx.font = `${brushSize * 4}px Arial`;
-    ctx.fillStyle = currentColor;
-    ctx.textAlign = 'center';
-    ctx.fillText(text, canvas.width / 2, canvas.height / 2);
+function changeCanvasColor() {
+  // Simple color picker for canvas background
+  const colors = ['#000000', '#1a1a2e', '#2a2a4a', '#4a4a6a', '#6a6a8a', '#8a8aa8', '#aaaaa8', '#ffffff'];
+  const colorNames = ['Black', 'Dark Blue', 'Dark Gray', 'Gray', 'Light Gray', 'Light Blue', 'Light Gray', 'White'];
+  
+  let colorList = '';
+  colors.forEach((color, index) => {
+    colorList += `${index + 1}. ${colorNames[index]} (${color})\n`;
+  });
+  
+  const choice = prompt(`Choose canvas background color:\n${colorList}\nEnter number (1-8):`);
+  
+  if (choice && !isNaN(choice) && choice >= 1 && choice <= 8) {
+    const selectedIndex = parseInt(choice) - 1;
+    canvasBackgroundColor = colors[selectedIndex];
+    
+    // Update canvas background
+    ctx.fillStyle = canvasBackgroundColor;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    // Redraw current content
+    if (undoStack.length > 0) {
+      const currentState = undoStack[undoStack.length - 1];
+      ctx.putImageData(currentState, 0, 0);
+    }
+    
     saveState();
   }
 }
@@ -618,8 +644,8 @@ function handleMouseDown(e) {
   const x = (e.clientX - rect.left) * (canvas.width / rect.width);
   const y = (e.clientY - rect.top) * (canvas.height / rect.height);
   
-  // Create minimal particles on drawing start
-  if (currentTool !== 'eraser') {
+  // Create minimal particles on drawing start for drip paint tool only
+  if (currentTool === 'drip') {
     createPaintParticles(x, y, 1);
   }
   
@@ -633,8 +659,8 @@ function handleMouseMove(e) {
   const x = (e.clientX - rect.left) * (canvas.width / rect.width);
   const y = (e.clientY - rect.top) * (canvas.height / rect.height);
   
-  // Create minimal particles during movement
-  if (currentTool !== 'eraser' && Math.random() < 0.3) {
+  // Create minimal particles during movement for drip paint tool only
+  if (currentTool === 'drip' && Math.random() < 0.3) {
     createPaintParticles(x, y, 1);
   }
   
@@ -653,8 +679,8 @@ function handleMouseUp() {
     drawKaleidoscope.prevY = null;
     drawLines.prevX = null;
     drawLines.prevY = null;
-    erase.prevX = null;
-    erase.prevY = null;
+    drawDripPaint.prevX = null;
+    drawDripPaint.prevY = null;
   }
 }
 
@@ -672,8 +698,8 @@ function draw(x, y) {
     case 'lines':
       drawLines(x, y);
       break;
-    case 'eraser':
-      erase(x, y);
+    case 'drip':
+      drawDripPaint(x, y);
       break;
   }
 }
@@ -725,13 +751,8 @@ window.addEventListener('sideClick', () => {
       requestCreativeAdvice();
       hideToolbar();
       return;
-    } else if (selectedTool.name === 'palette') {
-      // Generate random palette and update current color
-      const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD', '#FE5F00', '#FFFFFF'];
-      currentColor = colors[Math.floor(Math.random() * colors.length)];
-      
-      // Update color palette UI
-      updateColorPalette();
+    } else if (selectedTool.name === 'canvascolor') {
+      changeCanvasColor();
       hideToolbar();
       return;
     }
