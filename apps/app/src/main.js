@@ -18,7 +18,6 @@ let currentTool = 'brush';
 let currentColor = '#FE5F00';
 let canvasBackgroundColor = '#000000';
 let brushSize = 5;
-let toolbarVisible = false; // Hidden by default
 let selectedToolIndex = 0;
 let particles = [];
 let sacredShapes = [];
@@ -528,21 +527,6 @@ function drawSacredShapes() {
 // Simplified Tool Selector Implementation
 // ===========================================
 
-function showToolSelector() {
-  toolbarVisible = true;
-  const selector = document.getElementById('toolSelector');
-  selector.classList.remove('hidden');
-  selector.classList.add('visible');
-  updateToolSelector();
-}
-
-function hideToolSelector() {
-  toolbarVisible = false;
-  const selector = document.getElementById('toolSelector');
-  selector.classList.remove('visible');
-  selector.classList.add('hidden');
-}
-
 function updateToolSelector() {
   const selectedTool = document.getElementById('selectedTool');
   
@@ -565,32 +549,35 @@ function cycleTool(direction) {
   currentTool = tools[selectedToolIndex].name;
   updateToolSelector();
   
-  // Tool-specific setup (only for drawing tools)
-  switch (currentTool) {
-    case 'symmetry':
-      symmetryEnabled = true;
-      symmetryLines = 4;
-      break;
-    case 'kaleidoscope':
-      symmetryEnabled = false;
-      break;
-    case 'brush':
-      symmetryEnabled = false;
-      break;
-    case 'lines':
-      symmetryEnabled = false;
-      break;
-    case 'drip':
-      symmetryEnabled = false;
-      break;
-    case 'sacred':
-      particleSystemActive = true;
-      initAudio();
-      break;
-    default:
-      // For close and llm tools, no special setup needed
-      symmetryEnabled = false;
-      particleSystemActive = false;
+  // Automatically select the tool when cycling (except for close and llm)
+  if (currentTool !== 'close' && currentTool !== 'llm') {
+    // Tool-specific setup (only for drawing tools)
+    switch (currentTool) {
+      case 'symmetry':
+        symmetryEnabled = true;
+        symmetryLines = 4;
+        break;
+      case 'kaleidoscope':
+        symmetryEnabled = false;
+        break;
+      case 'brush':
+        symmetryEnabled = false;
+        break;
+      case 'lines':
+        symmetryEnabled = false;
+        break;
+      case 'drip':
+        symmetryEnabled = false;
+        break;
+      case 'sacred':
+        particleSystemActive = true;
+        initAudio();
+        break;
+      default:
+        // For other tools, no special setup needed
+        symmetryEnabled = false;
+        particleSystemActive = false;
+    }
   }
   
   console.log(`Selected tool: ${tools[selectedToolIndex].label}`);
@@ -832,52 +819,18 @@ function initAccelerometer() {
 // ===========================================
 
 window.addEventListener('scrollUp', () => {
-  // Only cycle tools when toolbar is visible
-  if (toolbarVisible) {
-    cycleTool(-1); // Previous tool
-    
-    // Reset hide timer
-    clearTimeout(selectorTimeout);
-    selectorTimeout = setTimeout(() => {
-      if (toolbarVisible) {
-        hideToolSelector();
-      }
-    }, 3000);
-  }
+  // Cycle to previous tool
+  cycleTool(-1);
 });
 
 window.addEventListener('scrollDown', () => {
-  // Only cycle tools when toolbar is visible
-  if (toolbarVisible) {
-    cycleTool(1); // Next tool
-    
-    // Reset hide timer
-    clearTimeout(selectorTimeout);
-    selectorTimeout = setTimeout(() => {
-      if (toolbarVisible) {
-        hideToolSelector();
-      }
-    }, 3000);
-  }
+  // Cycle to next tool
+  cycleTool(1);
 });
 
 window.addEventListener('sideClick', () => {
-  // Toggle tool selector visibility with PTT button
-  if (toolbarVisible) {
-    // When selector is visible, select the current tool
-    if (tools[selectedToolIndex].name === 'llm') {
-      requestCreativeAdvice();
-      hideToolSelector();
-    } else if (tools[selectedToolIndex].name === 'close') {
-      hideToolSelector();
-    } else {
-      // For drawing tools, just hide the selector
-      hideToolSelector();
-    }
-  } else {
-    // When selector is hidden, show it
-    showToolSelector();
-  }
+  // PTT button now takes screenshot and sends to LLM
+  takeScreenshotAndSend();
 });
 
 // Keyboard support for testing
@@ -885,34 +838,12 @@ document.addEventListener('keydown', (e) => {
   // Arrow up to cycle to previous tool
   if (e.key === 'ArrowUp') {
     cycleTool(-1); // Previous tool
-    if (!toolbarVisible) {
-      showToolSelector();
-    }
-    
-    // Hide selector after a short delay
-    setTimeout(() => {
-      if (toolbarVisible) {
-        hideToolSelector();
-      }
-    }, 1000);
-    
     e.preventDefault();
   }
   
   // Arrow down to cycle to next tool
   if (e.key === 'ArrowDown') {
     cycleTool(1); // Next tool
-    if (!toolbarVisible) {
-      showToolSelector();
-    }
-    
-    // Hide selector after a short delay
-    setTimeout(() => {
-      if (toolbarVisible) {
-        hideToolSelector();
-      }
-    }, 1000);
-    
     e.preventDefault();
   }
   
@@ -926,12 +857,8 @@ document.addEventListener('keydown', (e) => {
       return;
     }
     
-    // Toggle tool selector visibility
-    if (toolbarVisible) {
-      hideToolSelector();
-    } else {
-      showToolSelector();
-    }
+    // For other tools, just take a screenshot
+    takeScreenshotAndSend();
     e.preventDefault();
   }
 });
@@ -980,17 +907,14 @@ function initApp() {
   // Button event listeners
   document.getElementById('undoBtn').addEventListener('click', undo);
   document.getElementById('canvasColorBtn').addEventListener('click', toggleCanvasColorPicker);
-  document.getElementById('closeSelector').addEventListener('click', hideToolSelector);
   document.getElementById('selectedTool').addEventListener('click', () => {
     // When clicking the tool selector, select the current tool
     if (tools[selectedToolIndex].name === 'llm') {
       requestCreativeAdvice();
-      hideToolSelector();
-    } else if (tools[selectedToolIndex].name === 'close') {
-      hideToolSelector();
-    } else {
-      // For drawing tools, just hide the selector
-      hideToolSelector();
+    }
+    // For other tools, just take a screenshot
+    else {
+      takeScreenshotAndSend();
     }
   });
   
@@ -1052,13 +976,40 @@ document.addEventListener('click', (e) => {
   }
 });
 
-// Hide tool selector after a period of inactivity
-let selectorTimeout;
-document.addEventListener('mousemove', () => {
-  clearTimeout(selectorTimeout);
-  if (toolbarVisible) {
-    selectorTimeout = setTimeout(() => {
-      hideToolSelector();
-    }, 3000); // Hide after 3 seconds of inactivity
+function takeScreenshotAndSend() {
+  // Take screenshot of canvas without UI elements
+  const imageData = canvas.toDataURL('image/png');
+  
+  // Send to LLM for email
+  if (typeof PluginMessageHandler !== 'undefined') {
+    const payload = {
+      message: `Please send this digital artwork to my email: ${imageData}`,
+      useLLM: true
+    };
+    PluginMessageHandler.postMessage(JSON.stringify(payload));
   }
-});
+  
+  // Visual feedback
+  const feedback = document.createElement('div');
+  feedback.textContent = 'Screenshot sent!';
+  feedback.style.cssText = `
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(254, 95, 0, 0.9);
+    color: #000;
+    padding: 10px 20px;
+    border-radius: 10px;
+    font-size: 16px;
+    font-weight: bold;
+    z-index: 100;
+    pointer-events: none;
+  `;
+  
+  document.body.appendChild(feedback);
+  
+  setTimeout(() => {
+    feedback.remove();
+  }, 1000);
+}

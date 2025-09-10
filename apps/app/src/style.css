@@ -34,10 +34,10 @@ html, body {
 /* Floating Buttons - truly floating with no background containers */
 .floating-button {
     position: fixed;
-    width: 35px;
-    height: 35px;
-    background: rgba(26, 26, 46, 0.8);
-    border: 2px solid #FE5F00;
+    width: 30px; /* Slightly smaller */
+    height: 30px; /* Slightly smaller */
+    background: transparent; /* Remove background */
+    border: none; /* Remove border */
     color: #FE5F00;
     border-radius: 50%;
     font-size: 14px;
@@ -48,7 +48,7 @@ html, body {
     justify-content: center;
     transition: all 0.2s ease;
     z-index: 10;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    box-shadow: none; /* Remove shadow */
 }
 
 .floating-button.top-left {
@@ -62,14 +62,14 @@ html, body {
 }
 
 .floating-button:hover {
-    background: #FE5F00;
-    color: #000;
+    background: rgba(254, 95, 0, 0.2); /* Light background on hover */
+    color: #FE5F00;
     transform: translateY(-2px);
 }
 
 .floating-button:active {
-    background: #FE5F00;
-    color: #000;
+    background: rgba(254, 95, 0, 0.3); /* Light background on active */
+    color: #FE5F00;
     transform: translateY(1px);
 }
 
@@ -79,18 +79,9 @@ html, body {
     bottom: 0;
     left: 0;
     right: 0;
-    height: 120px;
+    height: 100px; /* Slightly smaller than before */
     z-index: 20;
-    transition: transform 0.4s cubic-bezier(0.17, 0.67, 0.83, 0.67);
-    transform: translateY(100%);
-}
-
-.tool-selector.visible {
-    transform: translateY(0);
-}
-
-.tool-selector.hidden {
-    transform: translateY(100%);
+    transform: translateY(0); /* Always visible */
 }
 
 .selector-container {
@@ -100,22 +91,22 @@ html, body {
     display: flex;
     justify-content: center;
     align-items: center;
-    padding: 20px 0;
+    padding: 15px 0; /* Reduced padding */
 }
 
 .selected-tool {
-    width: 60px;
-    height: 60px;
+    width: 50px; /* Slightly smaller */
+    height: 50px; /* Slightly smaller */
     background: #FE5F00;
-    border: 3px solid #fff;
+    border: 2px solid #fff; /* Slightly thinner border */
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 24px;
+    font-size: 20px; /* Slightly smaller font */
     color: #000;
     z-index: 24;
-    box-shadow: 0 0 15px rgba(254, 95, 0, 0.7);
+    box-shadow: 0 0 10px rgba(254, 95, 0, 0.7); /* Slightly softer shadow */
     transition: all 0.2s ease;
     cursor: pointer;
     margin: 0;
@@ -211,21 +202,21 @@ html, body {
 /* Color Picker Popup - adjusted size */
 .color-picker-popup {
     position: fixed;
-    top: 60px;
+    top: 50px; /* Slightly higher */
     right: 10px;
     display: none;
     flex-direction: column;
-    gap: 5px; /* Reduced gap */
+    gap: 4px; /* Reduced gap */
     z-index: 16;
     background: rgba(26, 26, 46, 0.95);
-    padding: 6px; /* Reduced padding */
-    border-radius: 10px;
+    padding: 5px; /* Reduced padding */
+    border-radius: 8px; /* Slightly smaller radius */
     border: 2px solid #FE5F00;
 }
 
 .color-picker-popup .color-swatch {
-    width: 18px; /* Smaller size */
-    height: 18px; /* Smaller size */
+    width: 16px; /* Smaller size */
+    height: 16px; /* Smaller size */
 }
 
 /* Touch and interaction improvements */
