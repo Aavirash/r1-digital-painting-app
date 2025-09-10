@@ -1085,16 +1085,16 @@ window.handleLLMResponse = function(response) {
 };
 
 // Handle plugin messages to prevent app from closing
-window.onPluginMessage = function(event) {
-  console.log('Received plugin message:', event);
+window.onPluginMessage = function(data) {
+  console.log('Received plugin message:', data);
   
   // Check if this is a response to our email request
-  if (event && event.message) {
+  if (data && data.message) {
     // Create feedback for email status
     const feedback = document.createElement('div');
-    feedback.textContent = event.message.includes('sent') || event.message.includes('success') 
+    feedback.textContent = data.message.includes('sent') || data.message.includes('success') 
       ? 'Email sent successfully!' 
-      : 'Status: ' + event.message;
+      : 'Status: ' + data.message;
     feedback.style.cssText = `
       position: fixed;
       top: 50%;
@@ -1120,8 +1120,9 @@ window.onPluginMessage = function(event) {
   }
   
   // Prevent default behavior that might close the app
-  event.preventDefault = function() {};
-  event.stopPropagation = function() {};
+  if (data && typeof data.preventDefault === 'function') {
+    data.preventDefault();
+  }
   
   // Return false to indicate we've handled the message
   return false;
@@ -1322,7 +1323,7 @@ async function sendImageToR1System(imageData, email) {
   try {
     // Visual feedback
     const feedback = document.createElement('div');
-    feedback.textContent = 'Processing artwork...';
+    feedback.textContent = 'Sending artwork to R1 system...';
     feedback.style.cssText = `
       position: fixed;
       top: 50%;
@@ -1340,86 +1341,47 @@ async function sendImageToR1System(imageData, email) {
     
     document.body.appendChild(feedback);
     
-    // First, try to upload to catbox programmatically
-    feedback.textContent = 'Uploading artwork...';
+    // Extract base64 data from data URL (without the data URL prefix)
+    const base64Data = imageData.split(',')[1];
     
-    // Convert data URL to Blob
-    const blob = dataURLToBlob(imageData);
-    
-    // Create FormData for catbox upload
-    const formData = new FormData();
-    formData.append('fileToUpload', blob, 'artwork.png');
-    formData.append('reqtype', 'fileupload');
-    
-    // Try to upload to catbox
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
-    
-    const response = await fetch('https://catbox.moe/user/api.php', {
-      method: 'POST',
-      body: formData,
-      signal: controller.signal
-    });
-    
-    clearTimeout(timeoutId);
-    
-    if (!response.ok) {
-      throw new Error(`Upload failed with status: ${response.status}`);
-    }
-    
-    const imageUrl = await response.text();
-    console.log('Image uploaded successfully. URL:', imageUrl);
-    
-    // Validate that we got a proper URL
-    if (!imageUrl || !imageUrl.startsWith('http')) {
-      throw new Error('Invalid image URL received from catbox');
-    }
-    
-    // Now send the URL to the LLM for email
-    feedback.textContent = 'Sending email...';
-    
+    // Send to R1 system with the image data and email
+    // The R1 system will handle the upload to catbox and email sending
     if (typeof PluginMessageHandler !== 'undefined') {
       const payload = {
-        message: `Please send an email to ${email} with the digital artwork. The artwork can be viewed at: ${imageUrl}`,
-        imageUrl: imageUrl,
+        message: `Please upload this artwork to a public hosting service and send an email to ${email} with the artwork URL. The artwork is attached as base64 data.`,
+        imageBase64: base64Data, // Use the dedicated imageBase64 field
         recipientEmail: email,
         useLLM: true,
-        wantsR1Response: true
+        wantsR1Response: true,
+        action: "uploadAndEmailArtwork"
       };
       
-      console.log('Sending email request to R1 system with URL:', imageUrl);
+      console.log('Sending image to R1 system for upload and email processing');
       
       // Wrap in try-catch to prevent app from closing
       try {
         PluginMessageHandler.postMessage(JSON.stringify(payload));
+        
+        // Update feedback
+        setTimeout(() => {
+          if (feedback.parentNode) {
+            feedback.textContent = 'Artwork sent to R1 system for processing!';
+            setTimeout(() => {
+              if (feedback.parentNode) {
+                feedback.remove();
+              }
+            }, 3000);
+          }
+        }, 1000);
       } catch (postError) {
         console.error('Error posting message to PluginMessageHandler:', postError);
         throw new Error('Failed to communicate with R1 system');
       }
-      
-      // Update feedback
-      setTimeout(() => {
-        if (feedback.parentNode) {
-          feedback.textContent = 'Email request sent with artwork URL!';
-          setTimeout(() => {
-            if (feedback.parentNode) {
-              feedback.remove();
-            }
-          }, 3000);
-        }
-      }, 1000);
     } else {
       throw new Error('PluginMessageHandler not available - not running in R1 environment');
     }
   } catch (error) {
-    console.error('Error in upload and email process:', error);
-    
-    // If catbox upload failed, try sending directly to R1 system
-    if (error.message.includes('Failed to fetch') || error.message.includes('Upload failed')) {
-      console.log('Catbox upload failed, falling back to R1 system upload');
-      await sendImageDirectlyToR1(imageData, email);
-      return;
-    }
+    console.error('Error sending image to R1 system:', error);
     
     let errorMessage = 'Failed to send artwork: ';
     if (error.message.includes('PluginMessageHandler')) {
