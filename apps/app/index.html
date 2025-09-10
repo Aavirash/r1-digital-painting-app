@@ -2,79 +2,88 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=240, height=282, user-scalable=no, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>R1 Digital Painting App</title>
     <link rel="stylesheet" href="/src/style.css">
     <!-- Add Font Awesome for icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
-    <div id="app">
-        <!-- Floating Top Buttons -->
-        <button id="undoBtn" class="floating-button top-left" title="Undo"><i class="fas fa-undo"></i></button>
-        <button id="resetBtn" class="floating-button top-right" title="Reset Canvas"><i class="fas fa-trash-alt"></i></button>
+    <!-- Floating Top Buttons -->
+    <button id="undoBtn" class="floating-button top-left" title="Undo"><i class="fas fa-undo"></i></button>
+    <button id="canvasColorBtn" class="floating-button top-right" title="Canvas Color"><i class="fas fa-palette"></i></button>
 
-        <!-- Main Canvas Container -->
-        <div class="canvas-container">
-            <canvas id="paintCanvas"></canvas>
-        </div>
+    <!-- Main Canvas - fills entire screen -->
+    <canvas id="paintCanvas"></canvas>
 
-        <!-- Color Palette -->
-        <div class="color-palette">
-            <div class="color-swatch" style="background-color: #FE5F00;" data-color="#FE5F00"></div>
-            <div class="color-swatch" style="background-color: #FF6B6B;" data-color="#FF6B6B"></div>
-            <div class="color-swatch" style="background-color: #4ECDC4;" data-color="#4ECDC4"></div>
-            <div class="color-swatch" style="background-color: #45B7D1;" data-color="#45B7D1"></div>
-            <div class="color-swatch" style="background-color: #96CEB4;" data-color="#96CEB4"></div>
-            <div class="color-swatch" style="background-color: #FFEAA7;" data-color="#FFEAA7"></div>
-            <div class="color-swatch" style="background-color: #DDA0DD;" data-color="#DDA0DD"></div>
-            <div class="color-swatch" style="background-color: #FFFFFF;" data-color="#FFFFFF"></div>
-        </div>
+    <!-- Color Palette Popup (hidden by default) -->
+    <div id="colorPicker" class="color-picker-popup">
+        <div class="color-swatch" style="background-color: #000000;" data-color="#000000"></div>
+        <div class="color-swatch" style="background-color: #1a1a2e;" data-color="#1a1a2e"></div>
+        <div class="color-swatch" style="background-color: #2a2a4a;" data-color="#2a2a4a"></div>
+        <div class="color-swatch" style="background-color: #4a4a6a;" data-color="#4a4a6a"></div>
+        <div class="color-swatch" style="background-color: #6a6a8a;" data-color="#6a6a8a"></div>
+        <div class="color-swatch" style="background-color: #aaaaa8;" data-color="#aaaaa8"></div>
+        <div class="color-swatch" style="background-color: #cccccc;" data-color="#cccccc"></div>
+        <div class="color-swatch" style="background-color: #ffffff;" data-color="#ffffff"></div>
+    </div>
 
-        <!-- Half-Circle Rotational Toolbar -->
-        <div id="toolbar">
-            <div class="toolbar-container">
-                <div class="toolbar-center">
-                    <div id="centerTool"><i class="fas fa-paint-brush"></i></div>
-                    <div class="tool-item" data-tool="0">
-                        <i class="fas fa-paint-brush"></i>
-                        <span class="tool-label">Brush</span>
-                    </div>
-                    <div class="tool-item" data-tool="1">
-                        <i class="fas fa-magic"></i>
-                        <span class="tool-label">Kaleidoscope</span>
-                    </div>
-                    <div class="tool-item" data-tool="2">
-                        <i class="fas fa-sync-alt"></i>
-                        <span class="tool-label">Symmetry</span>
-                    </div>
-                    <div class="tool-item" data-tool="3">
-                        <i class="fas fa-fill-drip"></i>
-                        <span class="tool-label">Drip Paint</span>
-                    </div>
-                    <div class="tool-item" data-tool="4">
-                        <i class="fas fa-slash"></i>
-                        <span class="tool-label">Lines</span>
-                    </div>
-                    <div class="tool-item" data-tool="5">
-                        <i class="fas fa-microphone"></i>
-                        <span class="tool-label">AI Advice</span>
-                    </div>
-                    <div class="tool-item" data-tool="6">
-                        <i class="fas fa-sparkles"></i>
-                        <span class="tool-label">Particles</span>
-                    </div>
+    <!-- Drawing Tools Palette -->
+    <div class="color-palette">
+        <div class="color-swatch" style="background-color: #FE5F00;" data-color="#FE5F00"></div>
+        <div class="color-swatch" style="background-color: #FF6B6B;" data-color="#FF6B6B"></div>
+        <div class="color-swatch" style="background-color: #4ECDC4;" data-color="#4ECDC4"></div>
+        <div class="color-swatch" style="background-color: #45B7D1;" data-color="#45B7D1"></div>
+        <div class="color-swatch" style="background-color: #96CEB4;" data-color="#96CEB4"></div>
+        <div class="color-swatch" style="background-color: #FFEAA7;" data-color="#FFEAA7"></div>
+        <div class="color-swatch" style="background-color: #DDA0DD;" data-color="#DDA0DD"></div>
+        <div class="color-swatch" style="background-color: #FFFFFF;" data-color="#FFFFFF"></div>
+    </div>
+
+    <!-- Rotating Toolbar (hidden by default, appears on scroll) -->
+    <div id="toolbar" class="hidden">
+        <div class="toolbar-container">
+            <div class="toolbar-center">
+                <div id="centerTool"><i class="fas fa-paint-brush"></i></div>
+                <div class="tool-item" data-tool="0">
+                    <i class="fas fa-paint-brush"></i>
+                    <span class="tool-label">Brush</span>
+                </div>
+                <div class="tool-item" data-tool="1">
+                    <i class="fas fa-magic"></i>
+                    <span class="tool-label">Kaleidoscope</span>
+                </div>
+                <div class="tool-item" data-tool="2">
+                    <i class="fas fa-sync-alt"></i>
+                    <span class="tool-label">Symmetry</span>
+                </div>
+                <div class="tool-item" data-tool="3">
+                    <i class="fas fa-fill-drip"></i>
+                    <span class="tool-label">Drip Paint</span>
+                </div>
+                <div class="tool-item" data-tool="4">
+                    <i class="fas fa-slash"></i>
+                    <span class="tool-label">Lines</span>
+                </div>
+                <div class="tool-item" data-tool="5">
+                    <i class="fas fa-microphone"></i>
+                    <span class="tool-label">AI Advice</span>
+                </div>
+                <div class="tool-item" data-tool="6">
+                    <i class="fas fa-sun"></i>
+                    <span class="tool-label">Light Rays</span>
                 </div>
             </div>
         </div>
+    </div>
 
-        <!-- LLM Advice Overlay -->
-        <div id="adviceOverlay">
-            <div class="advice-content">
-                <div id="adviceText"></div>
-            </div>
+    <!-- LLM Advice Overlay -->
+    <div id="adviceOverlay">
+        <div class="advice-content">
+            <div id="adviceText"></div>
         </div>
     </div>
+
     <script type="module" src="/src/main.js"></script>
 </body>
 </html>

@@ -18,7 +18,7 @@ let currentTool = 'brush';
 let currentColor = '#FE5F00';
 let canvasBackgroundColor = '#000000';
 let brushSize = 5;
-let toolbarVisible = true;
+let toolbarVisible = false; // Hidden by default
 let toolbarRotation = 0;
 let selectedToolIndex = 0;
 let particles = [];
@@ -30,6 +30,7 @@ let symmetryLines = 4;
 let particleSystemActive = false;
 let lastShakeTime = 0;
 let audioContext = null;
+let canvasColorPickerMode = false;
 
 const tools = [
   { name: 'brush', icon: '<i class="fas fa-paint-brush"></i>', label: 'Brush' },
@@ -38,7 +39,7 @@ const tools = [
   { name: 'drip', icon: '<i class="fas fa-fill-drip"></i>', label: 'Drip Paint' },
   { name: 'lines', icon: '<i class="fas fa-slash"></i>', label: 'Lines' },
   { name: 'llm', icon: '<i class="fas fa-microphone"></i>', label: 'AI Advice' },
-  { name: 'particles', icon: '<i class="fas fa-sparkles"></i>', label: 'Particles' }
+  { name: 'particles', icon: '<i class="fas fa-sun"></i>', label: 'Light Rays' }
 ];
 
 // ===========================================
@@ -49,9 +50,9 @@ function initCanvas() {
   canvas = document.getElementById('paintCanvas');
   ctx = canvas.getContext('2d');
   
-  // Set canvas size for R1 device (240x282px)
-  canvas.width = 240;
-  canvas.height = 230;
+  // Set canvas size to fill entire screen
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
   
   // Set up canvas styling
   ctx.lineCap = 'round';
@@ -107,41 +108,7 @@ function showUndoFeedback() {
 }
 
 function clearCanvas() {
-  // Animated clear with confirmation
-  if (confirm('Clear entire canvas? This cannot be undone.')) {
-    // Simple clear animation
-    const centerX = canvas.width / 2;
-    const centerY = canvas.height / 2;
-    const maxRadius = Math.sqrt(centerX ** 2 + centerY ** 2);
-    let currentRadius = 0;
-    
-    const clearStep = () => {
-      ctx.globalCompositeOperation = 'destination-out';
-      ctx.beginPath();
-      ctx.arc(centerX, centerY, currentRadius, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.globalCompositeOperation = 'source-over';
-      
-      currentRadius += 20;
-      if (currentRadius < maxRadius + 20) {
-        requestAnimationFrame(clearStep);
-      } else {
-        // Final clear
-        ctx.fillStyle = canvasBackgroundColor;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        saveState();
-        
-        // Reset drawing state
-        if (drawSymmetry.prevPositions) drawSymmetry.prevPositions = [];
-      }
-    };
-    
-    clearStep();
-  }
-}
-
-function resetCanvas() {
-  // Quick reset without animation - for reset button
+  // Clear canvas without confirmation
   ctx.fillStyle = canvasBackgroundColor;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   saveState();
@@ -149,29 +116,6 @@ function resetCanvas() {
   // Reset all drawing states
   if (drawSymmetry.prevPositions) drawSymmetry.prevPositions = [];
   particles.length = 0;
-  
-  // Show reset feedback
-  const feedback = document.createElement('div');
-  feedback.textContent = 'Reset';
-  feedback.style.cssText = `
-    position: fixed;
-    top: 60px;
-    right: 20px;
-    background: rgba(255, 255, 255, 0.9);
-    color: #000;
-    padding: 8px 12px;
-    border-radius: 8px;
-    font-size: 12px;
-    font-weight: bold;
-    z-index: 100;
-    pointer-events: none;
-  `;
-  
-  document.body.appendChild(feedback);
-  
-  setTimeout(() => {
-    feedback.remove();
-  }, 1500);
 }
 
 // ===========================================
@@ -376,7 +320,7 @@ drawDripPaint.prevX = null;
 drawDripPaint.prevY = null;
 
 // ===========================================
-// Particle System Implementation
+// Particle System Implementation (Light Rays)
 // ===========================================
 
 function initAudio() {
@@ -409,32 +353,32 @@ function playPianoChord(frequencies) {
   });
 }
 
-function createParticle(x, y) {
-  // Create a light-based particle with random properties
-  const hue = Math.floor(Math.random() * 360);
-  const saturation = 70 + Math.floor(Math.random() * 30);
-  const lightness = 50 + Math.floor(Math.random() * 50);
+function createLightRay(x, y) {
+  // Create a simple light ray particle
+  const hue = Math.floor(Math.random() * 60) + 30; // Yellow to orange range
+  const saturation = 80 + Math.floor(Math.random() * 20);
+  const lightness = 50 + Math.floor(Math.random() * 30);
   
   return {
     x: x,
     y: y,
-    vx: (Math.random() - 0.5) * 4,
-    vy: (Math.random() - 0.5) * 4,
-    size: 2 + Math.random() * 8,
+    vx: (Math.random() - 0.5) * 6,
+    vy: (Math.random() - 0.5) * 6,
+    size: 1 + Math.random() * 3,
     color: `hsl(${hue}, ${saturation}%, ${lightness}%)`,
     life: 1.0,
-    decay: 0.01 + Math.random() * 0.02,
+    decay: 0.02 + Math.random() * 0.03,
     rotation: Math.random() * Math.PI * 2,
-    rotationSpeed: (Math.random() - 0.5) * 0.1
+    rotationSpeed: (Math.random() - 0.5) * 0.2
   };
 }
 
-function addParticles(x, y, count = 5) {
-  // Add particles at the touch position
+function addLightRays(x, y, count = 8) {
+  // Add light rays at the touch position
   for (let i = 0; i < count; i++) {
-    particles.push(createParticle(
-      x + (Math.random() - 0.5) * 20,
-      y + (Math.random() - 0.5) * 20
+    particles.push(createLightRay(
+      x + (Math.random() - 0.5) * 30,
+      y + (Math.random() - 0.5) * 30
     ));
   }
   
@@ -455,7 +399,7 @@ function addParticles(x, y, count = 5) {
 
 function updateParticles() {
   // Apply accelerometer data to particles
-  const accelFactor = 0.1;
+  const accelFactor = 0.2;
   
   for (let i = particles.length - 1; i >= 0; i--) {
     const p = particles[i];
@@ -488,14 +432,14 @@ function updateParticles() {
 }
 
 function drawParticles() {
-  // Draw all particles
+  // Draw all particles as simple light rays
   particles.forEach(p => {
     ctx.save();
     ctx.globalAlpha = p.life;
     ctx.translate(p.x, p.y);
     ctx.rotate(p.rotation);
     
-    // Draw particle as a glowing circle
+    // Draw particle as a simple glowing line
     const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, p.size);
     gradient.addColorStop(0, p.color);
     gradient.addColorStop(1, 'transparent');
@@ -504,6 +448,14 @@ function drawParticles() {
     ctx.beginPath();
     ctx.arc(0, 0, p.size, 0, Math.PI * 2);
     ctx.fill();
+    
+    // Draw a line for the light ray effect
+    ctx.strokeStyle = p.color;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(p.size * 2, 0);
+    ctx.stroke();
     
     ctx.restore();
   });
@@ -518,14 +470,14 @@ function drawParticles() {
 function showToolbar() {
   toolbarVisible = true;
   const toolbar = document.getElementById('toolbar');
-  toolbar.style.transform = 'translateY(0)';
+  toolbar.classList.remove('hidden');
   updateToolbarDisplay();
 }
 
 function hideToolbar() {
   toolbarVisible = false;
   const toolbar = document.getElementById('toolbar');
-  toolbar.style.transform = 'translateY(0)'; // Keep toolbar visible but allow hiding if needed
+  toolbar.classList.add('hidden');
 }
 
 function updateToolbarDisplay() {
@@ -533,15 +485,15 @@ function updateToolbarDisplay() {
   const centerTool = document.getElementById('centerTool');
   
   toolItems.forEach((item, index) => {
-    // Calculate position in half-circle (180 degrees spread)
+    // Calculate position in half-circle (180 degrees spread) with increased spacing
     const totalAngle = 180; // Half circle
     const startAngle = -90; // Start from top
     const angleStep = totalAngle / (tools.length - 1);
     const angle = startAngle + (index * angleStep) + toolbarRotation;
     
-    // Convert to radians and calculate position
+    // Convert to radians and calculate position with increased radius for more spacing
     const radian = (angle * Math.PI) / 180;
-    const radius = 35; // Fixed radius in pixels for better spacing
+    const radius = 60; // Increased radius for better spacing (blooming flower effect)
     const x = Math.cos(radian) * radius;
     const y = Math.sin(radian) * radius;
     
@@ -662,18 +614,54 @@ function updateColorPalette() {
 }
 
 // ===========================================
+// Canvas Color Picker Functionality
+// ===========================================
+
+function toggleCanvasColorPicker() {
+  canvasColorPickerMode = !canvasColorPickerMode;
+  
+  const colorPicker = document.getElementById('colorPicker');
+  const colorPalette = document.querySelector('.color-palette');
+  
+  if (canvasColorPickerMode) {
+    // Show color picker popup
+    colorPicker.style.display = 'flex';
+    colorPalette.style.display = 'none';
+  } else {
+    // Hide color picker popup
+    colorPicker.style.display = 'none';
+    colorPalette.style.display = 'flex';
+  }
+}
+
+function setCanvasBackgroundColor(color) {
+  canvasBackgroundColor = color;
+  // Update canvas background
+  ctx.fillStyle = canvasBackgroundColor;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  saveState();
+  
+  // Exit color picker mode
+  canvasColorPickerMode = false;
+  const colorPicker = document.getElementById('colorPicker');
+  const colorPalette = document.querySelector('.color-palette');
+  colorPicker.style.display = 'none';
+  colorPalette.style.display = 'flex';
+}
+
+// ===========================================
 // Event Handlers
 // ===========================================
 
 function handleMouseDown(e) {
   isDrawing = true;
   const rect = canvas.getBoundingClientRect();
-  const x = (e.clientX - rect.left) * (canvas.width / rect.width);
-  const y = (e.clientY - rect.top) * (canvas.height / rect.height);
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
   
   // Handle particle system
   if (currentTool === 'particles') {
-    addParticles(x, y, 10);
+    addLightRays(x, y, 10);
     return;
   }
   
@@ -684,13 +672,13 @@ function handleMouseMove(e) {
   if (!isDrawing) return;
   
   const rect = canvas.getBoundingClientRect();
-  const x = (e.clientX - rect.left) * (canvas.width / rect.width);
-  const y = (e.clientY - rect.top) * (canvas.height / rect.height);
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
   
   // Handle particle system
   if (currentTool === 'particles') {
     if (Math.random() < 0.3) {
-      addParticles(x, y, 3);
+      addLightRays(x, y, 3);
     }
     return;
   }
@@ -776,7 +764,7 @@ function initAccelerometer() {
         // Debounce shake events
         if (now - lastShakeTime > 1000) {
           lastShakeTime = now;
-          clearCanvas();
+          clearCanvas(); // No confirmation needed
         }
       }
     }
@@ -788,7 +776,8 @@ function initAccelerometer() {
 // ===========================================
 
 window.addEventListener('scrollUp', () => {
-  // Navigate through tools clockwise
+  // Show toolbar and navigate through tools clockwise
+  showToolbar();
   selectedToolIndex = (selectedToolIndex - 1 + tools.length) % tools.length;
   selectTool(selectedToolIndex);
   
@@ -797,7 +786,8 @@ window.addEventListener('scrollUp', () => {
 });
 
 window.addEventListener('scrollDown', () => {
-  // Navigate through tools counter-clockwise
+  // Show toolbar and navigate through tools counter-clockwise
+  showToolbar();
   selectedToolIndex = (selectedToolIndex + 1) % tools.length;
   selectTool(selectedToolIndex);
   
@@ -865,7 +855,7 @@ function initApp() {
   
   // Button event listeners
   document.getElementById('undoBtn').addEventListener('click', undo);
-  document.getElementById('resetBtn').addEventListener('click', resetCanvas);
+  document.getElementById('canvasColorBtn').addEventListener('click', toggleCanvasColorPicker);
   
   // Tool item event listeners
   document.querySelectorAll('.tool-item').forEach((item, index) => {
@@ -874,11 +864,18 @@ function initApp() {
     });
   });
   
-  // Color swatch event listeners
-  document.querySelectorAll('.color-swatch').forEach(swatch => {
+  // Color swatch event listeners (regular palette)
+  document.querySelectorAll('.color-palette .color-swatch').forEach(swatch => {
     swatch.addEventListener('click', () => {
       currentColor = swatch.dataset.color;
       updateColorPalette();
+    });
+  });
+  
+  // Color swatch event listeners (canvas color picker)
+  document.querySelectorAll('#colorPicker .color-swatch').forEach(swatch => {
+    swatch.addEventListener('click', () => {
+      setCanvasBackgroundColor(swatch.dataset.color);
     });
   });
   
@@ -922,5 +919,16 @@ document.addEventListener('click', (e) => {
   const adviceOverlay = document.getElementById('adviceOverlay');
   if (adviceOverlay && e.target === adviceOverlay) {
     adviceOverlay.style.display = 'none';
+  }
+});
+
+// Hide toolbar after a period of inactivity
+let toolbarTimeout;
+document.addEventListener('mousemove', () => {
+  clearTimeout(toolbarTimeout);
+  if (toolbarVisible) {
+    toolbarTimeout = setTimeout(() => {
+      hideToolbar();
+    }, 3000); // Hide after 3 seconds of inactivity
   }
 });
