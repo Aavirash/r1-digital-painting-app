@@ -21,6 +21,7 @@ let brushSize = 5;
 let toolbarVisible = false; // Hidden by default
 let selectedToolIndex = 0;
 let particles = [];
+let sacredShapes = [];
 let accelerometerData = { x: 0, y: 0, z: 0 };
 let pressure = 1.0;
 let undoStack = [];
@@ -30,6 +31,7 @@ let particleSystemActive = false;
 let lastShakeTime = 0;
 let canvasColorPickerMode = false;
 let audioContext = null;
+let clickCount = 0;
 
 const tools = [
   { name: 'brush', icon: '<i class="fas fa-paint-brush"></i>', label: 'Brush' },
@@ -38,7 +40,7 @@ const tools = [
   { name: 'drip', icon: '<i class="fas fa-fill-drip"></i>', label: 'Drip Paint' },
   { name: 'lines', icon: '<i class="fas fa-slash"></i>', label: 'Lines' },
   { name: 'llm', icon: '<i class="fas fa-microphone"></i>', label: 'AI Advice' },
-  { name: 'particles', icon: '<i class="fas fa-sparkles"></i>', label: 'Meditation' }
+  { name: 'sacred', icon: '<i class="fas fa-spa"></i>', label: 'Sacred Geometry' }
 ];
 
 // ===========================================
@@ -115,6 +117,7 @@ function clearCanvas() {
   // Reset all drawing states
   if (drawSymmetry.prevPositions) drawSymmetry.prevPositions = [];
   particles.length = 0;
+  sacredShapes.length = 0;
 }
 
 // ===========================================
@@ -319,7 +322,7 @@ drawDripPaint.prevX = null;
 drawDripPaint.prevY = null;
 
 // ===========================================
-// Particle System Implementation (Simple White Meditative Dots)
+// Sacred Geometry System Implementation
 // ===========================================
 
 function initAudio() {
@@ -329,7 +332,7 @@ function initAudio() {
   }
 }
 
-function playMeditativeSound(frequency, duration = 2.0) {
+function playSacredSound(frequency, duration = 1.5) {
   if (!audioContext) return;
   
   const now = audioContext.currentTime;
@@ -344,101 +347,175 @@ function playMeditativeSound(frequency, duration = 2.0) {
   oscillator.type = 'sine';
   oscillator.frequency.value = frequency;
   
-  // Gentle attack and release for meditative sound
+  // Gentle attack and release for sacred sound
   gainNode.gain.setValueAtTime(0, now);
-  gainNode.gain.linearRampToValueAtTime(0.2, now + 0.1);
+  gainNode.gain.linearRampToValueAtTime(0.3, now + 0.1);
   gainNode.gain.exponentialRampToValueAtTime(0.01, now + duration);
   
   oscillator.start(now);
   oscillator.stop(now + duration);
 }
 
-function createMeditativeParticle(x, y) {
-  // Create a simple white meditative dot particle
+function createSacredShape(x, y) {
+  // Create a sacred geometry shape
+  const shapes = ['circle', 'triangle', 'square', 'pentagon', 'hexagon', 'star'];
+  const shapeType = shapes[Math.floor(Math.random() * shapes.length)];
+  
   return {
     x: x,
     y: y,
-    vx: (Math.random() - 0.5) * 2,
-    vy: (Math.random() - 0.5) * 2,
-    size: 2 + Math.random() * 4,
-    color: 'rgba(255, 255, 255, 0.8)', // White with transparency
+    type: shapeType,
+    size: 20 + Math.random() * 30,
+    color: `hsl(${Math.floor(Math.random() * 360)}, 70%, 60%)`,
     life: 1.0,
-    decay: 0.015 + Math.random() * 0.01,
-    shine: Math.random() * 0.3 + 0.7 // Shine factor for glossy effect
+    decay: 0.01 + Math.random() * 0.01,
+    rotation: Math.random() * Math.PI * 2
   };
 }
 
-function addMeditativeParticles(x, y, count = 8) {
-  // Add meditative particles at the touch position
-  for (let i = 0; i < count; i++) {
-    particles.push(createMeditativeParticle(
-      x + (Math.random() - 0.5) * 20,
-      y + (Math.random() - 0.5) * 20
-    ));
-  }
+function addSacredShape(x, y) {
+  // Add sacred geometry shape at the touch position
+  const shape = createSacredShape(x, y);
+  sacredShapes.push(shape);
   
-  // Play a soothing meditative sound
-  const frequencies = [130.81, 164.81, 196.00, 261.63, 329.63, 392.00, 523.25]; // C3, E3, G3, C4, E4, G4, C5
-  const randomFreq = frequencies[Math.floor(Math.random() * frequencies.length)];
-  playMeditativeSound(randomFreq, 2.0);
+  // Play a sacred sound based on the shape type
+  const frequencies = {
+    'circle': 261.63,    // C4
+    'triangle': 329.63,  // E4
+    'square': 392.00,    // G4
+    'pentagon': 440.00,  // A4
+    'hexagon': 523.25,   // C5
+    'star': 659.25       // E5
+  };
+  
+  const frequency = frequencies[shape.type] || 440.00;
+  playSacredSound(frequency, 1.5);
+  
+  // Increment click count for musical progression
+  clickCount++;
+  
+  // Play harmonic sounds every few clicks
+  if (clickCount % 3 === 0) {
+    // Play a chord
+    playSacredSound(frequency * 1.25, 1.5); // Major third
+    playSacredSound(frequency * 1.5, 1.5);  // Perfect fifth
+  }
 }
 
-function updateParticles() {
-  // Apply accelerometer data to particles
-  const accelFactor = 0.1;
+function updateSacredShapes() {
+  // Apply accelerometer data to shapes
+  const accelFactor = 0.05;
   
-  for (let i = particles.length - 1; i >= 0; i--) {
-    const p = particles[i];
+  for (let i = sacredShapes.length - 1; i >= 0; i--) {
+    const s = sacredShapes[i];
     
-    // Update position with velocity and accelerometer influence
-    p.x += p.vx + accelerometerData.x * accelFactor;
-    p.y += p.vy + accelerometerData.y * accelFactor;
+    // Update position with accelerometer influence
+    s.x += accelerometerData.x * accelFactor;
+    s.y += accelerometerData.y * accelFactor;
     
-    // Boundary wrapping (particles reappear on opposite side)
-    if (p.x < -p.size) p.x = canvas.width + p.size;
-    if (p.x > canvas.width + p.size) p.x = -p.size;
-    if (p.y < -p.size) p.y = canvas.height + p.size;
-    if (p.y > canvas.height + p.size) p.y = -p.size;
-    
-    // Apply air resistance
-    p.vx *= 0.98;
-    p.vy *= 0.98;
+    // Boundary wrapping (shapes reappear on opposite side)
+    if (s.x < -s.size) s.x = canvas.width + s.size;
+    if (s.x > canvas.width + s.size) s.x = -s.size;
+    if (s.y < -s.size) s.y = canvas.height + s.size;
+    if (s.y > canvas.height + s.size) s.y = -s.size;
     
     // Update life
-    p.life -= p.decay;
+    s.life -= s.decay;
     
-    // Remove dead particles
-    if (p.life <= 0) {
-      particles.splice(i, 1);
+    // Remove dead shapes
+    if (s.life <= 0) {
+      sacredShapes.splice(i, 1);
     }
   }
 }
 
-function drawParticles() {
-  // Draw all particles as simple white meditative dots
-  particles.forEach(p => {
+function drawSacredShapes() {
+  // Draw all sacred geometry shapes
+  sacredShapes.forEach(s => {
     ctx.save();
-    ctx.globalAlpha = p.life;
+    ctx.globalAlpha = s.life;
+    ctx.translate(s.x, s.y);
+    ctx.rotate(s.rotation);
     
-    // Create a shiny white dot effect
-    const gradient = ctx.createRadialGradient(
-      p.x - p.size * 0.3, 
-      p.y - p.size * 0.3, 
-      0, 
-      p.x, 
-      p.y, 
-      p.size
-    );
+    ctx.strokeStyle = s.color;
+    ctx.lineWidth = 2;
+    ctx.fillStyle = s.color.replace(')', ', 0.2)').replace('hsl', 'hsla');
     
-    // Add shine effect
-    gradient.addColorStop(0, `rgba(255, 255, 255, ${p.shine})`);
-    gradient.addColorStop(0.5, p.color);
-    gradient.addColorStop(1, 'transparent');
-    
-    ctx.fillStyle = gradient;
-    ctx.beginPath();
-    ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-    ctx.fill();
+    switch (s.type) {
+      case 'circle':
+        ctx.beginPath();
+        ctx.arc(0, 0, s.size, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(0, 0, s.size * 0.5, 0, Math.PI * 2);
+        ctx.stroke();
+        break;
+        
+      case 'triangle':
+        ctx.beginPath();
+        for (let i = 0; i < 3; i++) {
+          const angle = (i * Math.PI * 2) / 3;
+          const x = Math.cos(angle) * s.size;
+          const y = Math.sin(angle) * s.size;
+          if (i === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        }
+        ctx.closePath();
+        ctx.stroke();
+        break;
+        
+      case 'square':
+        ctx.beginPath();
+        ctx.rect(-s.size, -s.size, s.size * 2, s.size * 2);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(-s.size * 0.7, -s.size * 0.7);
+        ctx.lineTo(s.size * 0.7, s.size * 0.7);
+        ctx.moveTo(s.size * 0.7, -s.size * 0.7);
+        ctx.lineTo(-s.size * 0.7, s.size * 0.7);
+        ctx.stroke();
+        break;
+        
+      case 'pentagon':
+        ctx.beginPath();
+        for (let i = 0; i < 5; i++) {
+          const angle = (i * Math.PI * 2) / 5 - Math.PI / 2;
+          const x = Math.cos(angle) * s.size;
+          const y = Math.sin(angle) * s.size;
+          if (i === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        }
+        ctx.closePath();
+        ctx.stroke();
+        break;
+        
+      case 'hexagon':
+        ctx.beginPath();
+        for (let i = 0; i < 6; i++) {
+          const angle = (i * Math.PI * 2) / 6;
+          const x = Math.cos(angle) * s.size;
+          const y = Math.sin(angle) * s.size;
+          if (i === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        }
+        ctx.closePath();
+        ctx.stroke();
+        break;
+        
+      case 'star':
+        ctx.beginPath();
+        for (let i = 0; i < 10; i++) {
+          const angle = (i * Math.PI * 2) / 10 - Math.PI / 2;
+          const radius = i % 2 === 0 ? s.size : s.size * 0.5;
+          const x = Math.cos(angle) * radius;
+          const y = Math.sin(angle) * radius;
+          if (i === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        }
+        ctx.closePath();
+        ctx.stroke();
+        break;
+    }
     
     ctx.restore();
   });
@@ -474,9 +551,16 @@ function updateToolSelector() {
   }
 }
 
-function cycleTool() {
+function cycleTool(direction) {
   // Cycle through tools
-  selectedToolIndex = (selectedToolIndex + 1) % tools.length;
+  if (direction > 0) {
+    // Next tool
+    selectedToolIndex = (selectedToolIndex + 1) % tools.length;
+  } else {
+    // Previous tool
+    selectedToolIndex = (selectedToolIndex - 1 + tools.length) % tools.length;
+  }
+  
   currentTool = tools[selectedToolIndex].name;
   updateToolSelector();
   
@@ -498,7 +582,7 @@ function cycleTool() {
     case 'drip':
       symmetryEnabled = false;
       break;
-    case 'particles':
+    case 'sacred':
       particleSystemActive = true;
       initAudio();
       break;
@@ -535,7 +619,7 @@ function selectTool(index) {
     case 'drip':
       symmetryEnabled = false;
       break;
-    case 'particles':
+    case 'sacred':
       particleSystemActive = true;
       initAudio();
       break;
@@ -629,9 +713,9 @@ function handleMouseDown(e) {
   const x = e.clientX - rect.left;
   const y = e.clientY - rect.top;
   
-  // Handle particle system
-  if (currentTool === 'particles') {
-    addMeditativeParticles(x, y, 10);
+  // Handle sacred geometry tool
+  if (currentTool === 'sacred') {
+    addSacredShape(x, y);
     return;
   }
   
@@ -645,10 +729,10 @@ function handleMouseMove(e) {
   const x = e.clientX - rect.left;
   const y = e.clientY - rect.top;
   
-  // Handle particle system
-  if (currentTool === 'particles') {
+  // Handle sacred geometry tool
+  if (currentTool === 'sacred') {
     if (Math.random() < 0.3) {
-      addMeditativeParticles(x, y, 3);
+      addSacredShape(x, y);
     }
     return;
   }
@@ -728,8 +812,8 @@ function initAccelerometer() {
       lastY = y;
       lastZ = z;
       
-      // Check for shake (but not for particle system)
-      if (currentTool !== 'particles' && (deltaX > shakeThreshold || deltaY > shakeThreshold || deltaZ > shakeThreshold)) {
+      // Check for shake (but not for sacred geometry tool)
+      if (currentTool !== 'sacred' && (deltaX > shakeThreshold || deltaY > shakeThreshold || deltaZ > shakeThreshold)) {
         const now = Date.now();
         // Debounce shake events
         if (now - lastShakeTime > 1000) {
@@ -746,16 +830,33 @@ function initAccelerometer() {
 // ===========================================
 
 window.addEventListener('scrollUp', () => {
-  // Show tool selector
-  showToolSelector();
-});
-
-window.addEventListener('scrollDown', () => {
-  // Cycle through tools and show selector
-  cycleTool();
+  // Cycle to previous tool and show selector
+  cycleTool(-1); // Previous tool
   if (!toolbarVisible) {
     showToolSelector();
   }
+  
+  // Hide selector after a short delay
+  setTimeout(() => {
+    if (toolbarVisible) {
+      hideToolSelector();
+    }
+  }, 1000);
+});
+
+window.addEventListener('scrollDown', () => {
+  // Cycle to next tool and show selector
+  cycleTool(1); // Next tool
+  if (!toolbarVisible) {
+    showToolSelector();
+  }
+  
+  // Hide selector after a short delay
+  setTimeout(() => {
+    if (toolbarVisible) {
+      hideToolSelector();
+    }
+  }, 1000);
 });
 
 window.addEventListener('sideClick', () => {
@@ -777,18 +878,37 @@ window.addEventListener('sideClick', () => {
 
 // Keyboard support for testing
 document.addEventListener('keydown', (e) => {
-  // Arrow up to show tool selector
+  // Arrow up to cycle to previous tool
   if (e.key === 'ArrowUp') {
-    showToolSelector();
-    e.preventDefault();
-  }
-  
-  // Arrow down to cycle through tools
-  if (e.key === 'ArrowDown') {
-    cycleTool();
+    cycleTool(-1); // Previous tool
     if (!toolbarVisible) {
       showToolSelector();
     }
+    
+    // Hide selector after a short delay
+    setTimeout(() => {
+      if (toolbarVisible) {
+        hideToolSelector();
+      }
+    }, 1000);
+    
+    e.preventDefault();
+  }
+  
+  // Arrow down to cycle to next tool
+  if (e.key === 'ArrowDown') {
+    cycleTool(1); // Next tool
+    if (!toolbarVisible) {
+      showToolSelector();
+    }
+    
+    // Hide selector after a short delay
+    setTimeout(() => {
+      if (toolbarVisible) {
+        hideToolSelector();
+      }
+    }, 1000);
+    
     e.preventDefault();
   }
   
@@ -858,7 +978,7 @@ function initApp() {
   document.getElementById('canvasColorBtn').addEventListener('click', toggleCanvasColorPicker);
   document.getElementById('closeSelector').addEventListener('click', hideToolSelector);
   document.getElementById('selectedTool').addEventListener('click', () => {
-    cycleTool();
+    cycleTool(1); // Next tool
   });
   
   // Color swatch event listeners (regular palette)
@@ -881,9 +1001,9 @@ function initApp() {
   
   // Start animation loop
   function animate() {
-    // Update and draw particles
-    updateParticles();
-    drawParticles();
+    // Update and draw sacred shapes
+    updateSacredShapes();
+    drawSacredShapes();
     requestAnimationFrame(animate);
   }
   

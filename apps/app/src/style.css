@@ -76,7 +76,7 @@ html, body {
 /* Simplified Tool Selector */
 .tool-selector {
     position: fixed;
-    bottom: 0;
+    bottom: -100px; /* Hidden below screen */
     left: 0;
     right: 0;
     height: 100px;
@@ -100,7 +100,7 @@ html, body {
     display: flex;
     justify-content: center;
     align-items: flex-end;
-    padding-bottom: 20px;
+    padding-bottom: 10px; /* Reduced padding */
 }
 
 .selected-tool {
@@ -118,6 +118,7 @@ html, body {
     box-shadow: 0 0 15px rgba(254, 95, 0, 0.7);
     transition: all 0.2s ease;
     cursor: pointer;
+    margin-bottom: 5px; /* Reduced margin */
 }
 
 .selected-tool:hover {
@@ -126,7 +127,7 @@ html, body {
 
 .close-selector {
     position: absolute;
-    top: -25px;
+    top: -30px; /* Pushed further down */
     left: 50%;
     transform: translateX(-50%);
     width: 35px;
@@ -180,39 +181,38 @@ html, body {
     color: #fff;
 }
 
-/* Particles - simple white meditative dots */
-.particle {
+/* Sacred Geometry Shapes */
+.sacred-shape {
     position: absolute;
     pointer-events: none;
-    border-radius: 50%;
-    animation: fadeOut 1.5s ease-out forwards;
+    animation: fadeOut 3s ease-out forwards;
 }
 
 @keyframes fadeOut {
     0% {
         opacity: 1;
-        transform: scale(1);
+        transform: scale(0.5);
     }
     100% {
         opacity: 0;
-        transform: scale(0);
+        transform: scale(1.5);
     }
 }
 
-/* Color Palette - floating with no container */
+/* Color Palette - floating with no container and smaller size */
 .color-palette {
     position: fixed;
     top: 60px;
     right: 10px;
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 6px; /* Reduced gap */
     z-index: 15;
 }
 
 .color-swatch {
-    width: 22px;
-    height: 22px;
+    width: 20px; /* Smaller size */
+    height: 20px; /* Smaller size */
     border-radius: 50%;
     border: 2px solid #2a2a4a;
     cursor: pointer;
@@ -241,17 +241,17 @@ html, body {
     right: 10px;
     display: none;
     flex-direction: column;
-    gap: 6px;
+    gap: 5px; /* Reduced gap */
     z-index: 16;
     background: rgba(26, 26, 46, 0.95);
-    padding: 8px;
+    padding: 6px; /* Reduced padding */
     border-radius: 10px;
     border: 2px solid #FE5F00;
 }
 
 .color-picker-popup .color-swatch {
-    width: 20px;
-    height: 20px;
+    width: 18px; /* Smaller size */
+    height: 18px; /* Smaller size */
 }
 
 /* Touch and interaction improvements */
