@@ -549,8 +549,12 @@ function cycleTool(direction) {
   currentTool = tools[selectedToolIndex].name;
   updateToolSelector();
   
-  // Automatically select the tool when cycling (except for close and llm)
-  if (currentTool !== 'close' && currentTool !== 'llm') {
+  // For LLM tool, show a subtle ripple animation to indicate it needs tapping
+  if (currentTool === 'llm') {
+    showRippleAnimation();
+  }
+  // Automatically select the tool when cycling (except for close, llm)
+  else if (currentTool !== 'close') {
     // Tool-specific setup (only for drawing tools)
     switch (currentTool) {
       case 'symmetry':
@@ -581,6 +585,57 @@ function cycleTool(direction) {
   }
   
   console.log(`Selected tool: ${tools[selectedToolIndex].label}`);
+}
+
+function showRippleAnimation() {
+  const selectedTool = document.getElementById('selectedTool');
+  if (selectedTool) {
+    // Create ripple effect
+    const ripple = document.createElement('div');
+    ripple.style.cssText = `
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 0;
+      height: 0;
+      border-radius: 50%;
+      border: 2px solid rgba(255, 255, 255, 0.7);
+      animation: ripple 1.5s infinite;
+      pointer-events: none;
+      z-index: 25;
+    `;
+    
+    // Add animation keyframes if not already present
+    if (!document.getElementById('ripple-animation')) {
+      const style = document.createElement('style');
+      style.id = 'ripple-animation';
+      style.textContent = `
+        @keyframes ripple {
+          0% {
+            width: 0;
+            height: 0;
+            opacity: 1;
+          }
+          100% {
+            width: 100px;
+            height: 100px;
+            opacity: 0;
+          }
+        }
+      `;
+      document.head.appendChild(style);
+    }
+    
+    selectedTool.appendChild(ripple);
+    
+    // Remove ripple after animation completes
+    setTimeout(() => {
+      if (ripple.parentNode) {
+        ripple.parentNode.removeChild(ripple);
+      }
+    }, 1500);
+  }
 }
 
 function selectTool(index) {
@@ -627,12 +682,36 @@ function selectTool(index) {
 function requestCreativeAdvice() {
   if (typeof PluginMessageHandler !== 'undefined') {
     const payload = {
-      message: 'Give me creative painting advice or inspiration in 2-3 sentences. Be encouraging and artistic.',
+      message: 'Give me creative drawing prompts or artistic inspiration in 2-3 sentences. Focus on visual ideas I can draw, like "Draw a tree with colorful leaves" or "Create a pattern of interlocking circles". Be encouraging and artistic.',
       useLLM: true,
       wantsR1Response: true
     };
     PluginMessageHandler.postMessage(JSON.stringify(payload));
   }
+  
+  // Visual feedback for LLM request
+  const feedback = document.createElement('div');
+  feedback.textContent = 'Asking LLM for creative ideas...';
+  feedback.style.cssText = `
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(254, 95, 0, 0.9);
+    color: #000;
+    padding: 10px 20px;
+    border-radius: 10px;
+    font-size: 16px;
+    font-weight: bold;
+    z-index: 100;
+    pointer-events: none;
+  `;
+  
+  document.body.appendChild(feedback);
+  
+  setTimeout(() => {
+    feedback.remove();
+  }, 2000);
 }
 
 function captureAndEmail() {
@@ -908,12 +987,15 @@ function initApp() {
   document.getElementById('undoBtn').addEventListener('click', undo);
   document.getElementById('canvasColorBtn').addEventListener('click', toggleCanvasColorPicker);
   document.getElementById('selectedTool').addEventListener('click', () => {
-    // When clicking the tool selector, select the current tool
+    // When clicking the tool selector, handle the current tool
     if (tools[selectedToolIndex].name === 'llm') {
+      // For LLM tool, request creative advice
       requestCreativeAdvice();
-    }
-    // For other tools, just take a screenshot
-    else {
+    } else if (tools[selectedToolIndex].name === 'close') {
+      // For close tool, just take a screenshot (as per new PTT behavior)
+      takeScreenshotAndSend();
+    } else {
+      // For other tools, just take a screenshot
       takeScreenshotAndSend();
     }
   });
@@ -980,18 +1062,19 @@ function takeScreenshotAndSend() {
   // Take screenshot of canvas without UI elements
   const imageData = canvas.toDataURL('image/png');
   
-  // Send to LLM for email
+  // Send to LLM for email with proper instruction
   if (typeof PluginMessageHandler !== 'undefined') {
     const payload = {
-      message: `Please send this digital artwork to my email: ${imageData}`,
-      useLLM: true
+      message: `Please email this digital artwork to the user's email address: ${imageData}`,
+      useLLM: true,
+      wantsR1Response: true
     };
     PluginMessageHandler.postMessage(JSON.stringify(payload));
   }
   
   // Visual feedback
   const feedback = document.createElement('div');
-  feedback.textContent = 'Screenshot sent!';
+  feedback.textContent = 'Screenshot sent to your email!';
   feedback.style.cssText = `
     position: fixed;
     top: 50%;
@@ -1011,5 +1094,5 @@ function takeScreenshotAndSend() {
   
   setTimeout(() => {
     feedback.remove();
-  }, 1000);
+  }, 2000); // Show feedback for 2 seconds
 }

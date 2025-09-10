@@ -199,24 +199,24 @@ html, body {
     transform: scale(0.9);
 }
 
-/* Color Picker Popup - adjusted size */
+/* Color Picker Popup - same size as regular color palette */
 .color-picker-popup {
     position: fixed;
-    top: 50px; /* Slightly higher */
+    top: 60px;
     right: 10px;
     display: none;
     flex-direction: column;
-    gap: 4px; /* Reduced gap */
+    gap: 6px; /* Same as regular color palette */
     z-index: 16;
     background: rgba(26, 26, 46, 0.95);
-    padding: 5px; /* Reduced padding */
-    border-radius: 8px; /* Slightly smaller radius */
+    padding: 6px; /* Same as regular color palette */
+    border-radius: 10px;
     border: 2px solid #FE5F00;
 }
 
 .color-picker-popup .color-swatch {
-    width: 16px; /* Smaller size */
-    height: 16px; /* Smaller size */
+    width: 20px; /* Same size as regular color swatches */
+    height: 20px; /* Same size as regular color swatches */
 }
 
 /* Touch and interaction improvements */
