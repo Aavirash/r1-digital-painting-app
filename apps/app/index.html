@@ -40,45 +40,17 @@
         <div class="color-swatch" style="background-color: #FFFFFF;" data-color="#FFFFFF"></div>
     </div>
 
-    <!-- Half-Pie Menu Toolbar -->
-    <div id="pieToolbar" class="pie-toolbar hidden">
-        <div class="pie-container">
-            <!-- Close button at the center bottom -->
-            <div class="close-toolbar" id="closeToolbar">
+    <!-- Simplified Tool Selector - Single button that shows selected tool -->
+    <div id="toolSelector" class="tool-selector hidden">
+        <div class="selector-container">
+            <!-- Close button -->
+            <div class="close-selector" id="closeSelector">
                 <i class="fas fa-times"></i>
             </div>
             
-            <!-- Tools arranged in a half-pie -->
-            <div class="pie-center">
-                <div id="centerTool" class="center-tool"><i class="fas fa-paint-brush"></i></div>
-                <div class="tool-item" data-tool="0">
-                    <i class="fas fa-paint-brush"></i>
-                    <span class="tool-label">Brush</span>
-                </div>
-                <div class="tool-item" data-tool="1">
-                    <i class="fas fa-magic"></i>
-                    <span class="tool-label">Kaleidoscope</span>
-                </div>
-                <div class="tool-item" data-tool="2">
-                    <i class="fas fa-sync-alt"></i>
-                    <span class="tool-label">Symmetry</span>
-                </div>
-                <div class="tool-item" data-tool="3">
-                    <i class="fas fa-fill-drip"></i>
-                    <span class="tool-label">Drip Paint</span>
-                </div>
-                <div class="tool-item" data-tool="4">
-                    <i class="fas fa-slash"></i>
-                    <span class="tool-label">Lines</span>
-                </div>
-                <div class="tool-item" data-tool="5">
-                    <i class="fas fa-microphone"></i>
-                    <span class="tool-label">AI Advice</span>
-                </div>
-                <div class="tool-item" data-tool="6">
-                    <i class="fas fa-spa"></i>
-                    <span class="tool-label">Meditation</span>
-                </div>
+            <!-- Selected tool indicator -->
+            <div id="selectedTool" class="selected-tool">
+                <i class="fas fa-paint-brush"></i>
             </div>
         </div>
     </div>

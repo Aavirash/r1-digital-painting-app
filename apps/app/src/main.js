@@ -19,7 +19,6 @@ let currentColor = '#FE5F00';
 let canvasBackgroundColor = '#000000';
 let brushSize = 5;
 let toolbarVisible = false; // Hidden by default
-let toolbarRotation = 0;
 let selectedToolIndex = 0;
 let particles = [];
 let accelerometerData = { x: 0, y: 0, z: 0 };
@@ -29,8 +28,8 @@ let symmetryEnabled = false;
 let symmetryLines = 4;
 let particleSystemActive = false;
 let lastShakeTime = 0;
-let audioContext = null;
 let canvasColorPickerMode = false;
+let audioContext = null;
 
 const tools = [
   { name: 'brush', icon: '<i class="fas fa-paint-brush"></i>', label: 'Brush' },
@@ -39,7 +38,7 @@ const tools = [
   { name: 'drip', icon: '<i class="fas fa-fill-drip"></i>', label: 'Drip Paint' },
   { name: 'lines', icon: '<i class="fas fa-slash"></i>', label: 'Lines' },
   { name: 'llm', icon: '<i class="fas fa-microphone"></i>', label: 'AI Advice' },
-  { name: 'particles', icon: '<i class="fas fa-spa"></i>', label: 'Meditation' }
+  { name: 'particles', icon: '<i class="fas fa-sparkles"></i>', label: 'Meditation' }
 ];
 
 // ===========================================
@@ -320,7 +319,7 @@ drawDripPaint.prevX = null;
 drawDripPaint.prevY = null;
 
 // ===========================================
-// Particle System Implementation (Meditative Style)
+// Particle System Implementation (Simple White Meditative Dots)
 // ===========================================
 
 function initAudio() {
@@ -330,7 +329,7 @@ function initAudio() {
   }
 }
 
-function playMeditativeSound(frequency, duration = 1.5) {
+function playMeditativeSound(frequency, duration = 2.0) {
   if (!audioContext) return;
   
   const now = audioContext.currentTime;
@@ -347,7 +346,7 @@ function playMeditativeSound(frequency, duration = 1.5) {
   
   // Gentle attack and release for meditative sound
   gainNode.gain.setValueAtTime(0, now);
-  gainNode.gain.linearRampToValueAtTime(0.3, now + 0.1);
+  gainNode.gain.linearRampToValueAtTime(0.2, now + 0.1);
   gainNode.gain.exponentialRampToValueAtTime(0.01, now + duration);
   
   oscillator.start(now);
@@ -355,47 +354,17 @@ function playMeditativeSound(frequency, duration = 1.5) {
 }
 
 function createMeditativeParticle(x, y) {
-  // Create a meditative particle that syncs with color picker
-  const hue = Math.floor(Math.random() * 360);
-  const saturation = 60 + Math.floor(Math.random() * 40);
-  const lightness = 40 + Math.floor(Math.random() * 40);
-  
-  // Use current color as base for particle color
-  const colorMatch = currentColor.match(/^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i);
-  if (colorMatch) {
-    const r = parseInt(colorMatch[1], 16);
-    const g = parseInt(colorMatch[2], 16);
-    const b = parseInt(colorMatch[3], 16);
-    // Blend with random color for variety
-    const blendFactor = 0.7;
-    const blendedR = Math.floor(r * blendFactor + Math.random() * 255 * (1 - blendFactor));
-    const blendedG = Math.floor(g * blendFactor + Math.random() * 255 * (1 - blendFactor));
-    const blendedB = Math.floor(b * blendFactor + Math.random() * 255 * (1 - blendFactor));
-    return {
-      x: x,
-      y: y,
-      vx: (Math.random() - 0.5) * 3,
-      vy: (Math.random() - 0.5) * 3,
-      size: 2 + Math.random() * 6,
-      color: `rgb(${blendedR}, ${blendedG}, ${blendedB})`,
-      life: 1.0,
-      decay: 0.01 + Math.random() * 0.02,
-      rotation: Math.random() * Math.PI * 2,
-      rotationSpeed: (Math.random() - 0.5) * 0.1
-    };
-  }
-  
+  // Create a simple white meditative dot particle
   return {
     x: x,
     y: y,
-    vx: (Math.random() - 0.5) * 3,
-    vy: (Math.random() - 0.5) * 3,
-    size: 2 + Math.random() * 6,
-    color: `hsl(${hue}, ${saturation}%, ${lightness}%)`,
+    vx: (Math.random() - 0.5) * 2,
+    vy: (Math.random() - 0.5) * 2,
+    size: 2 + Math.random() * 4,
+    color: 'rgba(255, 255, 255, 0.8)', // White with transparency
     life: 1.0,
-    decay: 0.01 + Math.random() * 0.02,
-    rotation: Math.random() * Math.PI * 2,
-    rotationSpeed: (Math.random() - 0.5) * 0.1
+    decay: 0.015 + Math.random() * 0.01,
+    shine: Math.random() * 0.3 + 0.7 // Shine factor for glossy effect
   };
 }
 
@@ -403,26 +372,15 @@ function addMeditativeParticles(x, y, count = 8) {
   // Add meditative particles at the touch position
   for (let i = 0; i < count; i++) {
     particles.push(createMeditativeParticle(
-      x + (Math.random() - 0.5) * 40,
-      y + (Math.random() - 0.5) * 40
+      x + (Math.random() - 0.5) * 20,
+      y + (Math.random() - 0.5) * 20
     ));
   }
   
-  // Play a soothing meditative sound based on current color
-  const colorMatch = currentColor.match(/^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i);
-  if (colorMatch) {
-    const r = parseInt(colorMatch[1], 16);
-    const g = parseInt(colorMatch[2], 16);
-    const b = parseInt(colorMatch[3], 16);
-    // Map color to frequency (red = lower, blue = higher)
-    const frequency = 200 + (r * 0.2) + (g * 0.3) + (b * 0.5);
-    playMeditativeSound(frequency, 1.5);
-  } else {
-    // Default soothing frequencies
-    const frequencies = [261.63, 329.63, 392.00, 440.00, 523.25]; // C, E, G, A, C
-    const randomFreq = frequencies[Math.floor(Math.random() * frequencies.length)];
-    playMeditativeSound(randomFreq, 1.5);
-  }
+  // Play a soothing meditative sound
+  const frequencies = [130.81, 164.81, 196.00, 261.63, 329.63, 392.00, 523.25]; // C3, E3, G3, C4, E4, G4, C5
+  const randomFreq = frequencies[Math.floor(Math.random() * frequencies.length)];
+  playMeditativeSound(randomFreq, 2.0);
 }
 
 function updateParticles() {
@@ -435,9 +393,6 @@ function updateParticles() {
     // Update position with velocity and accelerometer influence
     p.x += p.vx + accelerometerData.x * accelFactor;
     p.y += p.vy + accelerometerData.y * accelFactor;
-    
-    // Apply rotation
-    p.rotation += p.rotationSpeed;
     
     // Boundary wrapping (particles reappear on opposite side)
     if (p.x < -p.size) p.x = canvas.width + p.size;
@@ -460,21 +415,29 @@ function updateParticles() {
 }
 
 function drawParticles() {
-  // Draw all particles with meditative style
+  // Draw all particles as simple white meditative dots
   particles.forEach(p => {
     ctx.save();
     ctx.globalAlpha = p.life;
-    ctx.translate(p.x, p.y);
-    ctx.rotate(p.rotation);
     
-    // Draw particle as a gentle glowing circle
-    const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, p.size);
-    gradient.addColorStop(0, p.color);
+    // Create a shiny white dot effect
+    const gradient = ctx.createRadialGradient(
+      p.x - p.size * 0.3, 
+      p.y - p.size * 0.3, 
+      0, 
+      p.x, 
+      p.y, 
+      p.size
+    );
+    
+    // Add shine effect
+    gradient.addColorStop(0, `rgba(255, 255, 255, ${p.shine})`);
+    gradient.addColorStop(0.5, p.color);
     gradient.addColorStop(1, 'transparent');
     
     ctx.fillStyle = gradient;
     ctx.beginPath();
-    ctx.arc(0, 0, p.size, 0, Math.PI * 2);
+    ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
     ctx.fill();
     
     ctx.restore();
@@ -484,70 +447,38 @@ function drawParticles() {
 }
 
 // ===========================================
-// Half-Pie Menu Toolbar Implementation
+// Simplified Tool Selector Implementation
 // ===========================================
 
-function showToolbar() {
+function showToolSelector() {
   toolbarVisible = true;
-  const toolbar = document.getElementById('pieToolbar');
-  toolbar.classList.remove('hidden');
-  toolbar.classList.add('visible');
-  updateToolbarDisplay();
+  const selector = document.getElementById('toolSelector');
+  selector.classList.remove('hidden');
+  selector.classList.add('visible');
+  updateToolSelector();
 }
 
-function hideToolbar() {
+function hideToolSelector() {
   toolbarVisible = false;
-  const toolbar = document.getElementById('pieToolbar');
-  toolbar.classList.remove('visible');
-  toolbar.classList.add('hidden');
+  const selector = document.getElementById('toolSelector');
+  selector.classList.remove('visible');
+  selector.classList.add('hidden');
 }
 
-function updateToolbarDisplay() {
-  const toolItems = document.querySelectorAll('.tool-item');
-  const centerTool = document.getElementById('centerTool');
+function updateToolSelector() {
+  const selectedTool = document.getElementById('selectedTool');
   
-  toolItems.forEach((item, index) => {
-    // Calculate position in half-circle (180 degrees spread) with proper spacing
-    const totalAngle = 180; // Half circle
-    const startAngle = -90; // Start from top (center)
-    const angleStep = totalAngle / (tools.length - 1);
-    const angle = startAngle + (index * angleStep);
-    
-    // Convert to radians and calculate position
-    const radian = (angle * Math.PI) / 180;
-    const radius = 50; // Fixed radius for consistent spacing
-    const x = Math.cos(radian) * radius;
-    const y = Math.sin(radian) * radius;
-    
-    // Apply transform with smooth animation
-    item.style.transform = `translate(${x}px, ${y}px) scale(${index === selectedToolIndex ? 1.1 : 1})`;
-    item.classList.toggle('selected', index === selectedToolIndex);
-    
-    // Add rotation animation effect
-    item.style.transition = 'all 0.2s ease';
-  });
-  
-  // Update center tool display with selected tool
-  if (centerTool) {
-    const selectedTool = tools[selectedToolIndex];
-    centerTool.innerHTML = selectedTool.icon;
-    centerTool.title = selectedTool.label;
-    centerTool.style.transform = 'translateX(-50%) scale(1.1)';
-    centerTool.style.transition = 'transform 0.1s ease';
-    
-    // Reset scale after animation
-    setTimeout(() => {
-      centerTool.style.transform = 'translateX(-50%) scale(1)';
-    }, 100);
+  // Update selected tool indicator
+  if (selectedTool) {
+    selectedTool.innerHTML = tools[selectedToolIndex].icon;
   }
 }
 
-function selectTool(index) {
-  if (index < 0 || index >= tools.length) return;
-  
-  selectedToolIndex = index;
-  currentTool = tools[index].name;
-  updateToolbarDisplay();
+function cycleTool() {
+  // Cycle through tools
+  selectedToolIndex = (selectedToolIndex + 1) % tools.length;
+  currentTool = tools[selectedToolIndex].name;
+  updateToolSelector();
   
   // Tool-specific setup
   switch (currentTool) {
@@ -576,13 +507,41 @@ function selectTool(index) {
       particleSystemActive = false;
   }
   
-  // Provide haptic feedback (visual pulse)
-  const centerTool = document.getElementById('centerTool');
-  if (centerTool) {
-    centerTool.style.transform = 'translateX(-50%) scale(1.2)';
-    setTimeout(() => {
-      centerTool.style.transform = 'translateX(-50%) scale(1)';
-    }, 100);
+  console.log(`Selected tool: ${tools[selectedToolIndex].label}`);
+}
+
+function selectTool(index) {
+  if (index < 0 || index >= tools.length) return;
+  
+  selectedToolIndex = index;
+  currentTool = tools[index].name;
+  updateToolSelector();
+  
+  // Tool-specific setup
+  switch (currentTool) {
+    case 'symmetry':
+      symmetryEnabled = true;
+      symmetryLines = 4;
+      break;
+    case 'kaleidoscope':
+      symmetryEnabled = false;
+      break;
+    case 'brush':
+      symmetryEnabled = false;
+      break;
+    case 'lines':
+      symmetryEnabled = false;
+      break;
+    case 'drip':
+      symmetryEnabled = false;
+      break;
+    case 'particles':
+      particleSystemActive = true;
+      initAudio();
+      break;
+    default:
+      symmetryEnabled = false;
+      particleSystemActive = false;
   }
   
   console.log(`Selected tool: ${tools[index].label}`);
@@ -783,21 +742,20 @@ function initAccelerometer() {
 }
 
 // ===========================================
-// R1 Hardware Event Handlers with Enhanced Toolbar Navigation
+// R1 Hardware Event Handlers and Keyboard Support
 // ===========================================
 
 window.addEventListener('scrollUp', () => {
-  // Show toolbar and navigate through tools clockwise
-  showToolbar();
-  selectedToolIndex = (selectedToolIndex - 1 + tools.length) % tools.length;
-  selectTool(selectedToolIndex);
+  // Show tool selector
+  showToolSelector();
 });
 
 window.addEventListener('scrollDown', () => {
-  // Show toolbar and navigate through tools counter-clockwise
-  showToolbar();
-  selectedToolIndex = (selectedToolIndex + 1) % tools.length;
-  selectTool(selectedToolIndex);
+  // Cycle through tools and show selector
+  cycleTool();
+  if (!toolbarVisible) {
+    showToolSelector();
+  }
 });
 
 window.addEventListener('sideClick', () => {
@@ -809,11 +767,48 @@ window.addEventListener('sideClick', () => {
     return;
   }
   
-  // Toggle toolbar visibility
+  // Toggle tool selector visibility
   if (toolbarVisible) {
-    hideToolbar();
+    hideToolSelector();
   } else {
-    showToolbar();
+    showToolSelector();
+  }
+});
+
+// Keyboard support for testing
+document.addEventListener('keydown', (e) => {
+  // Arrow up to show tool selector
+  if (e.key === 'ArrowUp') {
+    showToolSelector();
+    e.preventDefault();
+  }
+  
+  // Arrow down to cycle through tools
+  if (e.key === 'ArrowDown') {
+    cycleTool();
+    if (!toolbarVisible) {
+      showToolSelector();
+    }
+    e.preventDefault();
+  }
+  
+  // Enter key to simulate side button click
+  if (e.key === 'Enter') {
+    const selectedTool = tools[selectedToolIndex];
+    
+    // Handle special tools
+    if (selectedTool.name === 'llm') {
+      requestCreativeAdvice();
+      return;
+    }
+    
+    // Toggle tool selector visibility
+    if (toolbarVisible) {
+      hideToolSelector();
+    } else {
+      showToolSelector();
+    }
+    e.preventDefault();
   }
 });
 
@@ -861,13 +856,9 @@ function initApp() {
   // Button event listeners
   document.getElementById('undoBtn').addEventListener('click', undo);
   document.getElementById('canvasColorBtn').addEventListener('click', toggleCanvasColorPicker);
-  document.getElementById('closeToolbar').addEventListener('click', hideToolbar);
-  
-  // Tool item event listeners
-  document.querySelectorAll('.tool-item').forEach((item, index) => {
-    item.addEventListener('click', () => {
-      selectTool(index);
-    });
+  document.getElementById('closeSelector').addEventListener('click', hideToolSelector);
+  document.getElementById('selectedTool').addEventListener('click', () => {
+    cycleTool();
   });
   
   // Color swatch event listeners (regular palette)
@@ -928,13 +919,13 @@ document.addEventListener('click', (e) => {
   }
 });
 
-// Hide toolbar after a period of inactivity
-let toolbarTimeout;
+// Hide tool selector after a period of inactivity
+let selectorTimeout;
 document.addEventListener('mousemove', () => {
-  clearTimeout(toolbarTimeout);
+  clearTimeout(selectorTimeout);
   if (toolbarVisible) {
-    toolbarTimeout = setTimeout(() => {
-      hideToolbar();
+    selectorTimeout = setTimeout(() => {
+      hideToolSelector();
     }, 3000); // Hide after 3 seconds of inactivity
   }
 });
