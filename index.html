@@ -6,8 +6,8 @@
     <title>R1 Digital Painting App</title>
     <!-- Add Font Awesome for icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <script type="module" crossorigin src="./assets/main-Cp-Ym7Qk.js"></script>
-  <link rel="stylesheet" crossorigin href="./assets/main-D3sL9Nkb.css">
+  <script type="module" crossorigin src="./assets/main-BhMRyY4c.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/main-C4K9pFN0.css">
 </head>
 <body>
     <!-- Floating Top Buttons -->
@@ -41,49 +41,17 @@
         <div class="color-swatch" style="background-color: #FFFFFF;" data-color="#FFFFFF"></div>
     </div>
 
-    <!-- Half-Pie Rotating Menu -->
-    <div id="rotatingMenu" class="rotating-menu hidden">
-        <div class="menu-container">
-            <div class="menu-center">
-                <!-- Close button at the center -->
-                <div class="close-menu" id="closeMenu">
-                    <i class="fas fa-times"></i>
-                </div>
-                
-                <!-- Tools arranged in a half-circle with proper spacing -->
-                <div class="tool-item" data-tool="0">
-                    <i class="fas fa-paint-brush"></i>
-                    <span class="tool-label">Brush</span>
-                </div>
-                <div class="tool-item" data-tool="1">
-                    <i class="fas fa-magic"></i>
-                    <span class="tool-label">Kaleidoscope</span>
-                </div>
-                <div class="tool-item" data-tool="2">
-                    <i class="fas fa-sync-alt"></i>
-                    <span class="tool-label">Symmetry</span>
-                </div>
-                <div class="tool-item" data-tool="3">
-                    <i class="fas fa-fill-drip"></i>
-                    <span class="tool-label">Drip Paint</span>
-                </div>
-                <div class="tool-item" data-tool="4">
-                    <i class="fas fa-slash"></i>
-                    <span class="tool-label">Lines</span>
-                </div>
-                <div class="tool-item" data-tool="5">
-                    <i class="fas fa-microphone"></i>
-                    <span class="tool-label">AI Advice</span>
-                </div>
-                <div class="tool-item" data-tool="6">
-                    <i class="fas fa-sparkles"></i>
-                    <span class="tool-label">Particles</span>
-                </div>
-                
-                <!-- Center indicator for selected tool -->
-                <div id="centerIndicator" class="center-indicator">
-                    <i class="fas fa-paint-brush"></i>
-                </div>
+    <!-- Simplified Tool Selector - Single button that shows selected tool -->
+    <div id="toolSelector" class="tool-selector hidden">
+        <div class="selector-container">
+            <!-- Close button -->
+            <div class="close-selector" id="closeSelector">
+                <i class="fas fa-times"></i>
+            </div>
+            
+            <!-- Selected tool indicator -->
+            <div id="selectedTool" class="selected-tool">
+                <i class="fas fa-paint-brush"></i>
             </div>
         </div>
     </div>
