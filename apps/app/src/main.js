@@ -39,8 +39,7 @@ const tools = [
   { name: 'drip', icon: '<i class="fas fa-fill-drip"></i>', label: 'Drip Paint' },
   { name: 'lines', icon: '<i class="fas fa-slash"></i>', label: 'Lines' },
   { name: 'llm', icon: '<i class="fas fa-microphone"></i>', label: 'AI Advice' },
-  { name: 'sacred', icon: '<i class="fas fa-spa"></i>', label: 'Sacred Geometry' },
-  { name: 'close', icon: '<i class="fas fa-times"></i>', label: 'Close' } // Add close as a tool
+  { name: 'sacred', icon: '<i class="fas fa-spa"></i>', label: 'Sacred Geometry' }
 ];
 
 // ===========================================
@@ -537,7 +536,7 @@ function updateToolSelector() {
 }
 
 function cycleTool(direction) {
-  // Cycle through all tools including close tool
+  // Cycle through all tools (without close tool)
   if (direction > 0) {
     // Next tool
     selectedToolIndex = (selectedToolIndex + 1) % tools.length;
@@ -553,8 +552,8 @@ function cycleTool(direction) {
   if (currentTool === 'llm') {
     showRippleAnimation();
   }
-  // Automatically select the tool when cycling (except for close, llm)
-  else if (currentTool !== 'close') {
+  // Automatically select the tool when cycling (except for llm)
+  else {
     // Tool-specific setup (only for drawing tools)
     switch (currentTool) {
       case 'symmetry':
@@ -752,6 +751,16 @@ function toggleCanvasColorPicker() {
     // Show color picker, hide regular palette
     colorPicker.style.display = 'flex';
     colorPalette.style.display = 'none';
+    
+    // Highlight the currently selected canvas color
+    const swatches = colorPicker.querySelectorAll('.color-swatch');
+    swatches.forEach(swatch => {
+      if (swatch.dataset.color === canvasBackgroundColor) {
+        swatch.classList.add('selected-color');
+      } else {
+        swatch.classList.remove('selected-color');
+      }
+    });
   }
   
   console.log('Toggled canvas color picker. Color picker display:', colorPicker.style.display);
@@ -993,9 +1002,6 @@ function initApp() {
     if (tools[selectedToolIndex].name === 'llm') {
       // For LLM tool, request creative advice
       requestCreativeAdvice();
-    } else if (tools[selectedToolIndex].name === 'close') {
-      // For close tool, just take a screenshot (as per new PTT behavior)
-      takeScreenshotAndSend();
     } else {
       // For other tools, just take a screenshot
       takeScreenshotAndSend();
@@ -1013,7 +1019,16 @@ function initApp() {
   // Color swatch event listeners (canvas color picker)
   document.querySelectorAll('#colorPicker .color-swatch').forEach(swatch => {
     swatch.addEventListener('click', () => {
-      setCanvasBackgroundColor(swatch.dataset.color);
+      // Add visual feedback
+      const colorPicker = document.getElementById('colorPicker');
+      const swatches = colorPicker.querySelectorAll('.color-swatch');
+      swatches.forEach(s => s.classList.remove('selected-color'));
+      swatch.classList.add('selected-color');
+      
+      // Set canvas background color after a short delay for visual feedback
+      setTimeout(() => {
+        setCanvasBackgroundColor(swatch.dataset.color);
+      }, 200);
     });
   });
   
