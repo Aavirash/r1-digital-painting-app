@@ -1020,6 +1020,13 @@ function initApp() {
   // Initialize color palette
   updateColorPalette();
   
+  // Initialize tool selector to show the correct default tool (brush)
+  updateToolSelector();
+  
+  // Make sure brush tool settings are applied
+  symmetryEnabled = false;
+  particleSystemActive = false;
+  
   // Start animation loop
   function animate() {
     // Update and draw sacred shapes
@@ -1030,7 +1037,7 @@ function initApp() {
   
   animate();
   
-  console.log('R1 Digital Painting App initialized');
+  console.log('R1 Digital Painting App initialized with tool:', currentTool);
 }
 
 // Initialize app when DOM is loaded
