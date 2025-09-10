@@ -39,7 +39,7 @@ const tools = [
   { name: 'drip', icon: '<i class="fas fa-fill-drip"></i>', label: 'Drip Paint' },
   { name: 'lines', icon: '<i class="fas fa-slash"></i>', label: 'Lines' },
   { name: 'llm', icon: '<i class="fas fa-microphone"></i>', label: 'AI Advice' },
-  { name: 'particles', icon: '<i class="fas fa-sun"></i>', label: 'Light Rays' }
+  { name: 'particles', icon: '<i class="fas fa-spa"></i>', label: 'Meditation' }
 ];
 
 // ===========================================
@@ -320,7 +320,7 @@ drawDripPaint.prevX = null;
 drawDripPaint.prevY = null;
 
 // ===========================================
-// Particle System Implementation (Light Rays)
+// Particle System Implementation (Meditative Style)
 // ===========================================
 
 function initAudio() {
@@ -330,76 +330,104 @@ function initAudio() {
   }
 }
 
-function playPianoChord(frequencies) {
+function playMeditativeSound(frequency, duration = 1.5) {
   if (!audioContext) return;
   
   const now = audioContext.currentTime;
   
-  frequencies.forEach((freq, index) => {
-    const oscillator = audioContext.createOscillator();
-    const gainNode = audioContext.createGain();
-    
-    oscillator.connect(gainNode);
-    gainNode.connect(audioContext.destination);
-    
-    oscillator.type = 'sine';
-    oscillator.frequency.value = freq;
-    
-    gainNode.gain.setValueAtTime(0.3, now);
-    gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
-    
-    oscillator.start(now);
-    oscillator.stop(now + 0.5);
-  });
+  // Create a soothing sine wave
+  const oscillator = audioContext.createOscillator();
+  const gainNode = audioContext.createGain();
+  
+  oscillator.connect(gainNode);
+  gainNode.connect(audioContext.destination);
+  
+  oscillator.type = 'sine';
+  oscillator.frequency.value = frequency;
+  
+  // Gentle attack and release for meditative sound
+  gainNode.gain.setValueAtTime(0, now);
+  gainNode.gain.linearRampToValueAtTime(0.3, now + 0.1);
+  gainNode.gain.exponentialRampToValueAtTime(0.01, now + duration);
+  
+  oscillator.start(now);
+  oscillator.stop(now + duration);
 }
 
-function createLightRay(x, y) {
-  // Create a simple light ray particle
-  const hue = Math.floor(Math.random() * 60) + 30; // Yellow to orange range
-  const saturation = 80 + Math.floor(Math.random() * 20);
-  const lightness = 50 + Math.floor(Math.random() * 30);
+function createMeditativeParticle(x, y) {
+  // Create a meditative particle that syncs with color picker
+  const hue = Math.floor(Math.random() * 360);
+  const saturation = 60 + Math.floor(Math.random() * 40);
+  const lightness = 40 + Math.floor(Math.random() * 40);
+  
+  // Use current color as base for particle color
+  const colorMatch = currentColor.match(/^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i);
+  if (colorMatch) {
+    const r = parseInt(colorMatch[1], 16);
+    const g = parseInt(colorMatch[2], 16);
+    const b = parseInt(colorMatch[3], 16);
+    // Blend with random color for variety
+    const blendFactor = 0.7;
+    const blendedR = Math.floor(r * blendFactor + Math.random() * 255 * (1 - blendFactor));
+    const blendedG = Math.floor(g * blendFactor + Math.random() * 255 * (1 - blendFactor));
+    const blendedB = Math.floor(b * blendFactor + Math.random() * 255 * (1 - blendFactor));
+    return {
+      x: x,
+      y: y,
+      vx: (Math.random() - 0.5) * 3,
+      vy: (Math.random() - 0.5) * 3,
+      size: 2 + Math.random() * 6,
+      color: `rgb(${blendedR}, ${blendedG}, ${blendedB})`,
+      life: 1.0,
+      decay: 0.01 + Math.random() * 0.02,
+      rotation: Math.random() * Math.PI * 2,
+      rotationSpeed: (Math.random() - 0.5) * 0.1
+    };
+  }
   
   return {
     x: x,
     y: y,
-    vx: (Math.random() - 0.5) * 6,
-    vy: (Math.random() - 0.5) * 6,
-    size: 1 + Math.random() * 3,
+    vx: (Math.random() - 0.5) * 3,
+    vy: (Math.random() - 0.5) * 3,
+    size: 2 + Math.random() * 6,
     color: `hsl(${hue}, ${saturation}%, ${lightness}%)`,
     life: 1.0,
-    decay: 0.02 + Math.random() * 0.03,
+    decay: 0.01 + Math.random() * 0.02,
     rotation: Math.random() * Math.PI * 2,
-    rotationSpeed: (Math.random() - 0.5) * 0.2
+    rotationSpeed: (Math.random() - 0.5) * 0.1
   };
 }
 
-function addLightRays(x, y, count = 8) {
-  // Add light rays at the touch position
+function addMeditativeParticles(x, y, count = 8) {
+  // Add meditative particles at the touch position
   for (let i = 0; i < count; i++) {
-    particles.push(createLightRay(
-      x + (Math.random() - 0.5) * 30,
-      y + (Math.random() - 0.5) * 30
+    particles.push(createMeditativeParticle(
+      x + (Math.random() - 0.5) * 40,
+      y + (Math.random() - 0.5) * 40
     ));
   }
   
-  // Play a pleasant piano chord
-  const chords = [
-    [261.63, 329.63, 392.00], // C major
-    [293.66, 349.23, 440.00], // D minor
-    [329.63, 392.00, 493.88], // E minor
-    [349.23, 440.00, 523.25], // F major
-    [392.00, 493.88, 587.33], // G major
-    [440.00, 523.25, 659.25], // A minor
-    [493.88, 587.33, 698.46]  // B diminished
-  ];
-  
-  const randomChord = chords[Math.floor(Math.random() * chords.length)];
-  playPianoChord(randomChord);
+  // Play a soothing meditative sound based on current color
+  const colorMatch = currentColor.match(/^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i);
+  if (colorMatch) {
+    const r = parseInt(colorMatch[1], 16);
+    const g = parseInt(colorMatch[2], 16);
+    const b = parseInt(colorMatch[3], 16);
+    // Map color to frequency (red = lower, blue = higher)
+    const frequency = 200 + (r * 0.2) + (g * 0.3) + (b * 0.5);
+    playMeditativeSound(frequency, 1.5);
+  } else {
+    // Default soothing frequencies
+    const frequencies = [261.63, 329.63, 392.00, 440.00, 523.25]; // C, E, G, A, C
+    const randomFreq = frequencies[Math.floor(Math.random() * frequencies.length)];
+    playMeditativeSound(randomFreq, 1.5);
+  }
 }
 
 function updateParticles() {
   // Apply accelerometer data to particles
-  const accelFactor = 0.2;
+  const accelFactor = 0.1;
   
   for (let i = particles.length - 1; i >= 0; i--) {
     const p = particles[i];
@@ -432,14 +460,14 @@ function updateParticles() {
 }
 
 function drawParticles() {
-  // Draw all particles as simple light rays
+  // Draw all particles with meditative style
   particles.forEach(p => {
     ctx.save();
     ctx.globalAlpha = p.life;
     ctx.translate(p.x, p.y);
     ctx.rotate(p.rotation);
     
-    // Draw particle as a simple glowing line
+    // Draw particle as a gentle glowing circle
     const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, p.size);
     gradient.addColorStop(0, p.color);
     gradient.addColorStop(1, 'transparent');
@@ -449,14 +477,6 @@ function drawParticles() {
     ctx.arc(0, 0, p.size, 0, Math.PI * 2);
     ctx.fill();
     
-    // Draw a line for the light ray effect
-    ctx.strokeStyle = p.color;
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(0, 0);
-    ctx.lineTo(p.size * 2, 0);
-    ctx.stroke();
-    
     ctx.restore();
   });
   
@@ -464,19 +484,21 @@ function drawParticles() {
 }
 
 // ===========================================
-// Half-Circle Rotational Toolbar Implementation
+// Half-Pie Menu Toolbar Implementation
 // ===========================================
 
 function showToolbar() {
   toolbarVisible = true;
-  const toolbar = document.getElementById('toolbar');
+  const toolbar = document.getElementById('pieToolbar');
   toolbar.classList.remove('hidden');
+  toolbar.classList.add('visible');
   updateToolbarDisplay();
 }
 
 function hideToolbar() {
   toolbarVisible = false;
-  const toolbar = document.getElementById('toolbar');
+  const toolbar = document.getElementById('pieToolbar');
+  toolbar.classList.remove('visible');
   toolbar.classList.add('hidden');
 }
 
@@ -485,15 +507,15 @@ function updateToolbarDisplay() {
   const centerTool = document.getElementById('centerTool');
   
   toolItems.forEach((item, index) => {
-    // Calculate position in half-circle (180 degrees spread) with increased spacing
+    // Calculate position in half-circle (180 degrees spread) with proper spacing
     const totalAngle = 180; // Half circle
-    const startAngle = -90; // Start from top
+    const startAngle = -90; // Start from top (center)
     const angleStep = totalAngle / (tools.length - 1);
-    const angle = startAngle + (index * angleStep) + toolbarRotation;
+    const angle = startAngle + (index * angleStep);
     
-    // Convert to radians and calculate position with increased radius for more spacing
+    // Convert to radians and calculate position
     const radian = (angle * Math.PI) / 180;
-    const radius = 60; // Increased radius for better spacing (blooming flower effect)
+    const radius = 50; // Fixed radius for consistent spacing
     const x = Math.cos(radian) * radius;
     const y = Math.sin(radian) * radius;
     
@@ -510,25 +532,14 @@ function updateToolbarDisplay() {
     const selectedTool = tools[selectedToolIndex];
     centerTool.innerHTML = selectedTool.icon;
     centerTool.title = selectedTool.label;
-    centerTool.style.transform = 'translate(-50%, -50%) scale(1.1)';
+    centerTool.style.transform = 'translateX(-50%) scale(1.1)';
     centerTool.style.transition = 'transform 0.1s ease';
     
     // Reset scale after animation
     setTimeout(() => {
-      centerTool.style.transform = 'translate(-50%, -50%) scale(1)';
+      centerTool.style.transform = 'translateX(-50%) scale(1)';
     }, 100);
   }
-}
-
-function rotateToolbar(direction) {
-  // Smooth rotation animation
-  toolbarRotation += direction * 15; // 15 degrees per step
-  
-  // Keep rotation within reasonable bounds
-  if (toolbarRotation > 360) toolbarRotation -= 360;
-  if (toolbarRotation < -360) toolbarRotation += 360;
-  
-  updateToolbarDisplay();
 }
 
 function selectTool(index) {
@@ -568,9 +579,9 @@ function selectTool(index) {
   // Provide haptic feedback (visual pulse)
   const centerTool = document.getElementById('centerTool');
   if (centerTool) {
-    centerTool.style.transform = 'translate(-50%, -50%) scale(1.2)';
+    centerTool.style.transform = 'translateX(-50%) scale(1.2)';
     setTimeout(() => {
-      centerTool.style.transform = 'translate(-50%, -50%) scale(1)';
+      centerTool.style.transform = 'translateX(-50%) scale(1)';
     }, 100);
   }
   
@@ -661,7 +672,7 @@ function handleMouseDown(e) {
   
   // Handle particle system
   if (currentTool === 'particles') {
-    addLightRays(x, y, 10);
+    addMeditativeParticles(x, y, 10);
     return;
   }
   
@@ -678,7 +689,7 @@ function handleMouseMove(e) {
   // Handle particle system
   if (currentTool === 'particles') {
     if (Math.random() < 0.3) {
-      addLightRays(x, y, 3);
+      addMeditativeParticles(x, y, 3);
     }
     return;
   }
@@ -780,9 +791,6 @@ window.addEventListener('scrollUp', () => {
   showToolbar();
   selectedToolIndex = (selectedToolIndex - 1 + tools.length) % tools.length;
   selectTool(selectedToolIndex);
-  
-  // Add subtle rotation effect
-  rotateToolbar(-1);
 });
 
 window.addEventListener('scrollDown', () => {
@@ -790,9 +798,6 @@ window.addEventListener('scrollDown', () => {
   showToolbar();
   selectedToolIndex = (selectedToolIndex + 1) % tools.length;
   selectTool(selectedToolIndex);
-  
-  // Add subtle rotation effect
-  rotateToolbar(1);
 });
 
 window.addEventListener('sideClick', () => {
@@ -856,6 +861,7 @@ function initApp() {
   // Button event listeners
   document.getElementById('undoBtn').addEventListener('click', undo);
   document.getElementById('canvasColorBtn').addEventListener('click', toggleCanvasColorPicker);
+  document.getElementById('closeToolbar').addEventListener('click', hideToolbar);
   
   // Tool item event listeners
   document.querySelectorAll('.tool-item').forEach((item, index) => {
