@@ -1085,16 +1085,16 @@ window.handleLLMResponse = function(response) {
 };
 
 // Handle plugin messages to prevent app from closing
-window.onPluginMessage = function(data) {
-  console.log('Received plugin message:', data);
+window.onPluginMessage = function(event) {
+  console.log('Received plugin message:', event);
   
   // Check if this is a response to our email request
-  if (data && data.message) {
+  if (event && event.message) {
     // Create feedback for email status
     const feedback = document.createElement('div');
-    feedback.textContent = data.message.includes('sent') || data.message.includes('success') 
+    feedback.textContent = event.message.includes('sent') || event.message.includes('success') 
       ? 'Email sent successfully!' 
-      : 'Status: ' + data.message;
+      : 'Status: ' + event.message;
     feedback.style.cssText = `
       position: fixed;
       top: 50%;
@@ -1120,34 +1120,25 @@ window.onPluginMessage = function(data) {
   }
   
   // Prevent default behavior that might close the app
+  event.preventDefault = function() {};
+  event.stopPropagation = function() {};
+  
   // Return false to indicate we've handled the message
   return false;
 };
 
-// Make sure to also prevent the default event behavior
+// Also add an event listener for the pluginMessage event
 if (typeof window !== 'undefined') {
-  // Override any existing handler
-  const originalHandler = window.onPluginMessage;
-  window.onPluginMessage = function(data) {
-    // Call original handler if it exists
-    if (originalHandler) {
-      try {
-        originalHandler.call(this, data);
-      } catch (e) {
-        console.error('Error in original onPluginMessage handler:', e);
-      }
-    }
-    
-    // Our handler logic
-    console.log('Received plugin message (handled by digital painting app):', data);
+  window.addEventListener('pluginMessage', function(event) {
+    console.log('Received pluginMessage event:', event.detail);
     
     // Check if this is a response to our email request
-    if (data && data.message) {
+    if (event.detail && event.detail.message) {
       // Create feedback for email status
       const feedback = document.createElement('div');
-      feedback.textContent = data.message.includes('sent') || data.message.includes('success') 
+      feedback.textContent = event.detail.message.includes('sent') || event.detail.message.includes('success') 
         ? 'Email sent successfully!' 
-        : 'Status: ' + data.message;
+        : 'Status: ' + event.detail.message;
       feedback.style.cssText = `
         position: fixed;
         top: 50%;
@@ -1171,10 +1162,7 @@ if (typeof window !== 'undefined') {
         }
       }, 3000);
     }
-    
-    // Prevent default behavior that might close the app
-    return false;
-  };
+  });
 }
 
 // Close advice overlay when clicked
@@ -1334,6 +1322,146 @@ async function sendImageToR1System(imageData, email) {
   try {
     // Visual feedback
     const feedback = document.createElement('div');
+    feedback.textContent = 'Processing artwork...';
+    feedback.style.cssText = `
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(254, 95, 0, 0.9);
+      color: #000;
+      padding: 10px 20px;
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: bold;
+      z-index: 100;
+      pointer-events: none;
+    `;
+    
+    document.body.appendChild(feedback);
+    
+    // First, try to upload to catbox programmatically
+    feedback.textContent = 'Uploading artwork...';
+    
+    // Convert data URL to Blob
+    const blob = dataURLToBlob(imageData);
+    
+    // Create FormData for catbox upload
+    const formData = new FormData();
+    formData.append('fileToUpload', blob, 'artwork.png');
+    formData.append('reqtype', 'fileupload');
+    
+    // Try to upload to catbox
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+    
+    const response = await fetch('https://catbox.moe/user/api.php', {
+      method: 'POST',
+      body: formData,
+      signal: controller.signal
+    });
+    
+    clearTimeout(timeoutId);
+    
+    if (!response.ok) {
+      throw new Error(`Upload failed with status: ${response.status}`);
+    }
+    
+    const imageUrl = await response.text();
+    console.log('Image uploaded successfully. URL:', imageUrl);
+    
+    // Validate that we got a proper URL
+    if (!imageUrl || !imageUrl.startsWith('http')) {
+      throw new Error('Invalid image URL received from catbox');
+    }
+    
+    // Now send the URL to the LLM for email
+    feedback.textContent = 'Sending email...';
+    
+    if (typeof PluginMessageHandler !== 'undefined') {
+      const payload = {
+        message: `Please send an email to ${email} with the digital artwork. The artwork can be viewed at: ${imageUrl}`,
+        imageUrl: imageUrl,
+        recipientEmail: email,
+        useLLM: true,
+        wantsR1Response: true
+      };
+      
+      console.log('Sending email request to R1 system with URL:', imageUrl);
+      
+      // Wrap in try-catch to prevent app from closing
+      try {
+        PluginMessageHandler.postMessage(JSON.stringify(payload));
+      } catch (postError) {
+        console.error('Error posting message to PluginMessageHandler:', postError);
+        throw new Error('Failed to communicate with R1 system');
+      }
+      
+      // Update feedback
+      setTimeout(() => {
+        if (feedback.parentNode) {
+          feedback.textContent = 'Email request sent with artwork URL!';
+          setTimeout(() => {
+            if (feedback.parentNode) {
+              feedback.remove();
+            }
+          }, 3000);
+        }
+      }, 1000);
+    } else {
+      throw new Error('PluginMessageHandler not available - not running in R1 environment');
+    }
+  } catch (error) {
+    console.error('Error in upload and email process:', error);
+    
+    // If catbox upload failed, try sending directly to R1 system
+    if (error.message.includes('Failed to fetch') || error.message.includes('Upload failed')) {
+      console.log('Catbox upload failed, falling back to R1 system upload');
+      await sendImageDirectlyToR1(imageData, email);
+      return;
+    }
+    
+    let errorMessage = 'Failed to send artwork: ';
+    if (error.message.includes('PluginMessageHandler')) {
+      errorMessage += 'Not running in R1 environment';
+    } else {
+      errorMessage += error.message;
+    }
+    
+    // Show error feedback
+    const errorFeedback = document.createElement('div');
+    errorFeedback.textContent = errorMessage;
+    errorFeedback.style.cssText = `
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(255, 0, 0, 0.9);
+      color: white;
+      padding: 10px 20px;
+      border-radius: 10px;
+      font-size: 12px;
+      font-weight: bold;
+      z-index: 100;
+      pointer-events: none;
+      max-width: 80%;
+      text-align: center;
+    `;
+    
+    document.body.appendChild(errorFeedback);
+    
+    setTimeout(() => {
+      if (errorFeedback.parentNode) {
+        errorFeedback.remove();
+      }
+    }, 5000);
+  }
+}
+
+async function sendImageDirectlyToR1(imageData, email) {
+  try {
+    // Visual feedback
+    const feedback = document.createElement('div');
     feedback.textContent = 'Sending artwork to R1 system...';
     feedback.style.cssText = `
       position: fixed;
@@ -1365,7 +1493,7 @@ async function sendImageToR1System(imageData, email) {
         wantsR1Response: true
       };
       
-      console.log('Sending image to R1 system for email processing');
+      console.log('Sending image directly to R1 system for email processing');
       
       // Wrap in try-catch to prevent app from closing
       try {
@@ -1390,7 +1518,7 @@ async function sendImageToR1System(imageData, email) {
       throw new Error('PluginMessageHandler not available - not running in R1 environment');
     }
   } catch (error) {
-    console.error('Error sending image to R1 system:', error);
+    console.error('Error sending image directly to R1 system:', error);
     
     let errorMessage = 'Failed to send artwork: ';
     if (error.message.includes('PluginMessageHandler')) {
