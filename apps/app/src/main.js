@@ -1090,11 +1090,43 @@ window.onPluginMessage = function(data) {
   
   // Check if this is a response to our email request
   if (data && data.message) {
+    console.log('Processing message response:', data.message);
+    
     // Create feedback for email status
     const feedback = document.createElement('div');
     feedback.textContent = data.message.includes('sent') || data.message.includes('success') 
       ? 'Email sent successfully!' 
       : 'Status: ' + data.message;
+    feedback.style.cssText = `
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(254, 95, 0, 0.9);
+      color: #000;
+      padding: 10px 20px;
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: bold;
+      z-index: 100;
+      pointer-events: none;
+    `;
+    
+    document.body.appendChild(feedback);
+    
+    setTimeout(() => {
+      if (feedback.parentNode) {
+        feedback.remove();
+      }
+    }, 3000);
+  }
+  
+  // Handle special cases
+  if (data && data.request && data.request === "base64_data") {
+    console.log('R1 system is requesting base64 data');
+    // Create feedback to inform user
+    const feedback = document.createElement('div');
+    feedback.textContent = 'R1 system is processing your artwork...';
     feedback.style.cssText = `
       position: fixed;
       top: 50%;
@@ -1348,15 +1380,17 @@ async function sendImageToR1System(imageData, email) {
     // The R1 system will handle the upload to catbox and email sending
     if (typeof PluginMessageHandler !== 'undefined') {
       const payload = {
-        message: `Please upload this artwork to a public hosting service and send an email to ${email} with the artwork URL. The artwork is attached as base64 data.`,
+        message: `Please upload this artwork to a public hosting service and send an email to ${email} with the artwork URL. The artwork is attached as base64 data in the imageBase64 field.`,
         imageBase64: base64Data, // Use the dedicated imageBase64 field
         recipientEmail: email,
         useLLM: true,
         wantsR1Response: true,
-        action: "uploadAndEmailArtwork"
+        action: "uploadAndEmailArtwork",
+        imageFormat: "png"
       };
       
       console.log('Sending image to R1 system for upload and email processing');
+      console.log('Base64 data length:', base64Data ? base64Data.length : 'undefined');
       
       // Wrap in try-catch to prevent app from closing
       try {
