@@ -4,15 +4,13 @@ When the user presses the PTT button in the digital painting app, the system wil
 
 ```json
 {
-  "message": "USER REQUEST: Please upload this digital artwork to ImgBB and email the public URL to [user@email.com]",
+  "message": "SYSTEM INSTRUCTION: Upload digital artwork to ImgBB and email URL to [user@email.com]",
   "imageBase64": "[base64_encoded_image_data]",
   "recipientEmail": "[user@email.com]",
-  "useLLM": true,
-  "wantsR1Response": true,
   "action": "uploadToImgBBAndEmail",
   "uploadEndpoint": "https://api.imgbb.com/1/upload",
   "apiKey": "1a2fc605085e16887ec98e57fce39914",
-  "instructions": "Send POST request with API key and base64 data to ImgBB, get URL from response, email URL to recipient"
+  "instructions": "1. Make POST request to uploadEndpoint with apiKey and imageBase64 2. Parse response to get URL 3. Send email to recipientEmail with URL"
 }
 ```
 
@@ -43,3 +41,12 @@ The response from ImgBB will be in this format:
 ```
 
 Extract the `data.url` field for the email.
+
+## Implementation Details:
+
+The R1 system should:
+1. Make the API call programmatically (not through LLM)
+2. Handle any errors that occur during the upload process
+3. Send status updates back to the app using the plugin message system
+4. Send the final email with the URL to the user
+5. Provide success/failure feedback to the user
