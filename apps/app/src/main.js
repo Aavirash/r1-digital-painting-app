@@ -1272,18 +1272,16 @@ async function sendImageToR1System(imageData) {
     // Extract base64 data from data URL (without the data URL prefix)
     const base64Data = imageData.split(',')[1];
     
-    // Send to LLM with instructions to send email with base64 data in the body
+    // Send to LLM with instructions to send email with base64 data as attachment
     feedback.textContent = 'Sending artwork to LLM...';
     
-    // Send message to LLM with base64 data directly in the message body
+    // Send message to LLM with base64 data in the imageBase64 field
     if (typeof PluginMessageHandler !== 'undefined') {
       const payload = {
-        message: `Please send an email to the user with the following details:
-Subject: Your Digital Artwork from R1 Digital Painting App
-Body: Here is your digital artwork! To view it, save the following text to a file with a .png extension:
-${base64Data}`,
+        message: "Please send an email to the user with subject 'Your Digital Artwork from R1 Digital Painting App' and body 'Here is your digital artwork!'. Create a PNG file attachment from the image data I'm providing and name it 'artwork.png'.",
+        imageBase64: base64Data,  // Send base64 data in the proper field
         useLLM: true,
-        wantsR1Response: false  // This is critical to prevent app closing
+        wantsR1Response: false    // Critical to prevent app closing
       };
       
       console.log('Sending base64 data to LLM for email with instructions');
