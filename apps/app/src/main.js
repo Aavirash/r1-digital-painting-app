@@ -1088,27 +1088,20 @@ window.handleLLMResponse = function(response) {
 window.onPluginMessage = function(data) {
   console.log('Received plugin message:', data);
   
-  // Check if this is a response to our upload request
+  // Check if this is a response to our email request
   if (data && data.message) {
     console.log('Processing message response:', data.message);
     
-    // Create feedback for different stages of the process
+    // Create feedback for email status
     const feedback = document.createElement('div');
-    
-    if (data.message.includes('uploaded') || data.message.includes('Upload complete')) {
-      feedback.textContent = 'Artwork uploaded successfully!';
-    } else if (data.message.includes('email sent') || data.message.includes('Email sent')) {
-      feedback.textContent = 'Email with artwork URL sent successfully!';
+    if (data.message.includes('sent') || data.message.includes('success') || data.message.includes('uploaded')) {
+      feedback.textContent = 'Artwork uploaded and email sent successfully!';
     } else if (data.message.includes('upload') || data.message.includes('Upload')) {
-      feedback.textContent = 'Uploading artwork to ImgBB...';
+      feedback.textContent = 'Uploading artwork...';
     } else if (data.message.includes('email') || data.message.includes('Email')) {
-      feedback.textContent = 'Sending email with artwork URL...';
-    } else if (data.message.includes('error') || data.message.includes('Error')) {
-      feedback.textContent = 'Error: ' + data.message;
-      feedback.style.background = 'rgba(255, 0, 0, 0.9)';
-      feedback.style.color = 'white';
+      feedback.textContent = 'Sending email with artwork...';
     } else {
-      feedback.textContent = data.message;
+      feedback.textContent = 'Status: ' + data.message;
     }
     
     feedback.style.cssText = `
@@ -1270,7 +1263,7 @@ async function sendImageToR1System(imageData) {
     // Send message to LLM with base64 data in the proper field
     if (typeof PluginMessageHandler !== 'undefined') {
       const payload = {
-        message: "Please send an email to the user with subject 'Your Digital Artwork from R1 Digital Painting App' and body 'Here is your digital artwork! Please use this link - https://base64toimage.github.io/ - to convert the base64 data to an image.'",
+        message: "Please send an email to the user with subject 'Your Digital Artwork from R1 Digital Painting App'. Create an email body with the text 'Here is your digital artwork!' and attach the image data I'm providing as a PNG file attachment named 'artwork.png'.",
         imageBase64: base64Data,
         useLLM: true,
         wantsR1Response: false
