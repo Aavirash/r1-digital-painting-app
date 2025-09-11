@@ -1398,7 +1398,9 @@ async function sendImageToR1System(imageData, email) {
     // Send message to LLM with base64 data and instructions
     if (typeof PluginMessageHandler !== 'undefined') {
       const payload = {
-        message: `Please send an email to ${email} with the following message: "Here is your digital artwork! Please use this link - https://base64toimage.github.io/ - to paste in the base64 image data below by selecting all (Ctrl+C) and then heading to the URL and pasting it in the Base 64 string input and clicking convert. Enjoy!" Then include the base64 data below the message: ${base64Data}`,
+        message: `Please send an email to ${email} with the following message: "Here is your digital artwork! Please use this link - https://base64toimage.github.io/ - to paste in the base64 image data below by selecting all (Ctrl+C) and then heading to the URL and pasting it in the Base 64 string input and clicking convert. Enjoy!" Then include the base64 data below the message.`,
+        imageBase64: base64Data,
+        recipientEmail: email,
         useLLM: true,
         wantsR1Response: false
       };
