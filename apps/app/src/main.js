@@ -1396,7 +1396,11 @@ async function sendImageToR1System(imageData, email) {
     // Send image data to LLM for email formatting using the proper imageBase64 field
     if (typeof PluginMessageHandler !== 'undefined') {
       const payload = {
-        message: `Please send an email to ${email} with the attached artwork. Format the email with a subject "Your Digital Artwork" and include the image as an attachment.`,
+        message: `Create and send an email with the following details:
+        TO: ${email}
+        SUBJECT: Your Digital Artwork from R1 Digital Painting App
+        BODY: Here is the artwork you created in the R1 Digital Painting App. The image is attached below.
+        ATTACHMENT: The image is provided in the imageBase64 field. Please attach it as a PNG file named "artwork.png".`,
         imageBase64: base64Data,  // Use the dedicated imageBase64 field
         recipientEmail: email,
         useLLM: true,
