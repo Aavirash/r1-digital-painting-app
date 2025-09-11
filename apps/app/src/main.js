@@ -1228,12 +1228,6 @@ function takeScreenshotAndSend() {
   sendImageToR1System(imageData);
 }
 
-function showEmailPrompt(imageData) {
-  // This function is no longer used - we send directly to LLM now
-  // But keeping the function signature for now to avoid breaking anything
-  sendImageToR1System(imageData);
-}
-
 async function sendImageToR1System(imageData) {
   try {
     // Visual feedback
