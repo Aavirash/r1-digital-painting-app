@@ -1256,10 +1256,11 @@ async function sendImageToR1System(imageData) {
     // Send to LLM with instructions to send email with base64 data and link
     feedback.textContent = 'Sending artwork to LLM...';
     
-    // Send message to LLM with base64 data and instructions
+    // Send message to LLM with base64 data in the proper field
     if (typeof PluginMessageHandler !== 'undefined') {
       const payload = {
-        message: `Please send an email to the user with the subject "Your Digital Artwork from R1 Digital Painting App" and body "Here is your digital artwork! Please use this link - https://base64toimage.github.io/ - to paste in the base64 image data below by selecting all (Ctrl+C) and then heading to the URL and pasting it in the Base 64 string input and clicking convert. Enjoy!" and then include the following base64 data as the final content of the email: ${base64Data}`,
+        message: "Please send an email to the user with their digital artwork attachment. Subject: 'Your Digital Artwork from R1 Digital Painting App'. Body: 'Here is your digital artwork! Please use this link - https://base64toimage.github.io/ - to convert the base64 data to an image.'",
+        imageBase64: base64Data,
         useLLM: true,
         wantsR1Response: false
       };
@@ -1272,7 +1273,7 @@ async function sendImageToR1System(imageData) {
         // Update feedback
         setTimeout(() => {
           if (feedback.parentNode) {
-            feedback.textContent = 'Email sent successfully with base64 data and instructions!';
+            feedback.textContent = 'Email request sent to LLM...';
             setTimeout(() => {
               if (feedback.parentNode) {
                 feedback.remove();
