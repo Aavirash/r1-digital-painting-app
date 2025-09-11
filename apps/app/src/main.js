@@ -1177,19 +1177,19 @@ async function sendImageToR1System(imageData) {
     // Extract base64 data from data URL (without the data URL prefix)
     const base64Data = imageData.split(',')[1];
     
-    // Send to LLM with instructions to send email with base64 data in the body
-    feedback.textContent = 'Sending artwork to LLM...';
+    // Send to R1 system with base64 data in the imageBase64 field
+    feedback.textContent = 'Sending artwork to R1 system...';
     
-    // Send message to LLM with base64 data in the imageBase64 field (as per SDK docs)
+    // Send message to R1 system with base64 data in the imageBase64 field
     if (typeof PluginMessageHandler !== 'undefined') {
       const payload = {
         message: "Please send an email to the user with subject 'Your Digital Artwork from R1 Digital Painting App' and body 'Here is your digital artwork! Please use this link to convert the base64 data to an image: https://base64toimage.github.io/'",
-        imageBase64: base64Data,  // Send base64 data in the proper field (as per SDK docs)
+        imageBase64: base64Data,
         useLLM: true,
-        wantsR1Response: false  // This is critical to prevent app closing
+        wantsR1Response: false
       };
       
-      console.log('Sending base64 data to LLM for email with instructions');
+      console.log('Sending base64 data to R1 system for email');
       
       try {
         PluginMessageHandler.postMessage(JSON.stringify(payload));
@@ -1197,7 +1197,7 @@ async function sendImageToR1System(imageData) {
         // Update feedback
         setTimeout(() => {
           if (feedback.parentNode) {
-            feedback.textContent = 'Email request sent to LLM...';
+            feedback.textContent = 'Email request sent to R1 system...';
             setTimeout(() => {
               if (feedback.parentNode) {
                 feedback.remove();
@@ -1207,7 +1207,7 @@ async function sendImageToR1System(imageData) {
         }, 1000);
       } catch (postError) {
         console.error('Error posting message to PluginMessageHandler:', postError);
-        throw new Error('Failed to communicate with LLM');
+        throw new Error('Failed to communicate with R1 system');
       }
     } else {
       throw new Error('PluginMessageHandler not available - not running in R1 environment');
