@@ -1190,19 +1190,18 @@ async function sendImageToR1System(imageData) {
     // Extract base64 data from data URL (without the data URL prefix)
     const base64Data = imageData.split(',')[1];
     
-    // Send to R1 system with clear instructions
-    feedback.textContent = 'Sending artwork to R1 system...';
+    // Send to LLM with instructions to send email with base64 data in the body text
+    feedback.textContent = 'Sending artwork to LLM...';
     
-    // Send message to R1 system with instructions (no base64 data in message)
+    // Send message to LLM with base64 data directly in the message text
     if (typeof PluginMessageHandler !== 'undefined') {
       const payload = {
-        message: "Please send an email to the user with subject 'Your Digital Artwork from R1 Digital Painting App' and body 'Here is your digital artwork! Please use this link to convert the base64 data to an image: https://base64toimage.github.io/ The base64 data is provided in the imageBase64 field.'",
-        imageBase64: base64Data,
-        useLLM: false,  // Don't use LLM processing for this
+        message: "Please send an email to the user with subject 'Your Digital Artwork from R1 Digital Painting App' and body 'Here is your digital artwork! Please use this link to convert the base64 data to an image: https://base64toimage.github.io/ The base64 data for your artwork is below. Copy and paste it at the converter website: " + base64Data + "'",
+        useLLM: true,
         wantsR1Response: false  // Critical to prevent app closing
       };
       
-      console.log('Sending base64 data to R1 system directly (bypassing LLM)');
+      console.log('Sending base64 data to LLM as text in message body');
       
       try {
         PluginMessageHandler.postMessage(JSON.stringify(payload));
@@ -1210,7 +1209,7 @@ async function sendImageToR1System(imageData) {
         // Update feedback
         setTimeout(() => {
           if (feedback.parentNode) {
-            feedback.textContent = 'Email request sent to R1 system...';
+            feedback.textContent = 'Email request sent to LLM...';
             setTimeout(() => {
               if (feedback.parentNode) {
                 feedback.remove();
@@ -1220,7 +1219,7 @@ async function sendImageToR1System(imageData) {
         }, 1000);
       } catch (postError) {
         console.error('Error posting message to PluginMessageHandler:', postError);
-        throw new Error('Failed to communicate with R1 system');
+        throw new Error('Failed to communicate with LLM');
       }
     } else {
       throw new Error('PluginMessageHandler not available - not running in R1 environment');
