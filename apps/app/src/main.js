@@ -1088,20 +1088,27 @@ window.handleLLMResponse = function(response) {
 window.onPluginMessage = function(data) {
   console.log('Received plugin message:', data);
   
-  // Check if this is a response to our email request
+  // Check if this is a response to our upload request
   if (data && data.message) {
     console.log('Processing message response:', data.message);
     
-    // Create feedback for email status
+    // Create feedback for different stages of the process
     const feedback = document.createElement('div');
-    if (data.message.includes('sent') || data.message.includes('success') || data.message.includes('uploaded')) {
-      feedback.textContent = 'Artwork uploaded and email sent successfully!';
+    
+    if (data.message.includes('uploaded') || data.message.includes('Upload complete')) {
+      feedback.textContent = 'Artwork uploaded successfully!';
+    } else if (data.message.includes('email sent') || data.message.includes('Email sent')) {
+      feedback.textContent = 'Email with artwork URL sent successfully!';
     } else if (data.message.includes('upload') || data.message.includes('Upload')) {
-      feedback.textContent = 'Uploading artwork...';
+      feedback.textContent = 'Uploading artwork to ImgBB...';
     } else if (data.message.includes('email') || data.message.includes('Email')) {
-      feedback.textContent = 'Sending email with artwork...';
+      feedback.textContent = 'Sending email with artwork URL...';
+    } else if (data.message.includes('error') || data.message.includes('Error')) {
+      feedback.textContent = 'Error: ' + data.message;
+      feedback.style.background = 'rgba(255, 0, 0, 0.9)';
+      feedback.style.color = 'white';
     } else {
-      feedback.textContent = 'Status: ' + data.message;
+      feedback.textContent = data.message;
     }
     
     feedback.style.cssText = `
@@ -1163,13 +1170,7 @@ window.onPluginMessage = function(data) {
     data.preventDefault();
   }
   
-  // Always return false to indicate we've handled the message and prevent app closing
-  // Also stop propagation to ensure no other handlers can close the app
-  if (data && typeof data.stopPropagation === 'function') {
-    data.stopPropagation();
-  }
-  
-  // Return false to indicate we've handled the message and prevent app closing
+  // Return false to indicate we've handled the message
   return false;
 };
 
@@ -1208,10 +1209,7 @@ if (typeof window !== 'undefined') {
         }
       }, 3000);
     }
-    
-    // Prevent event from bubbling up and causing app to close
-    event.stopImmediatePropagation();
-  }, true); // Use capture phase to ensure we catch it first
+  });
 }
 
 // Close advice overlay when clicked
@@ -1226,11 +1224,148 @@ function takeScreenshotAndSend() {
   // Take screenshot of canvas without UI elements
   const imageData = canvas.toDataURL('image/png');
   
-  // Send directly without email prompt
-  sendImageToR1System(imageData);
+  // Show email prompt
+  showEmailPrompt(imageData);
 }
 
-async function sendImageToR1System(imageData) {
+function showEmailPrompt(imageData) {
+  // Create overlay
+  const overlay = document.createElement('div');
+  overlay.id = 'emailOverlay';
+  overlay.style.cssText = `
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.9);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+  `;
+  
+  // Create prompt container
+  const container = document.createElement('div');
+  container.style.cssText = `
+    background: #1a1a2e;
+    border: 2px solid #FE5F00;
+    border-radius: 10px;
+    padding: 20px;
+    width: 80%;
+    max-width: 200px;
+  `;
+  
+  // Create title
+  const title = document.createElement('div');
+  title.textContent = 'Enter your email:';
+  title.style.cssText = `
+    color: white;
+    font-size: 14px;
+    margin-bottom: 15px;
+    text-align: center;
+  `;
+  
+  // Create email input
+  const emailInput = document.createElement('input');
+  emailInput.type = 'email';
+  emailInput.placeholder = 'your@email.com';
+  emailInput.style.cssText = `
+    width: 100%;
+    padding: 8px;
+    margin-bottom: 15px;
+    border: 1px solid #FE5F00;
+    border-radius: 5px;
+    background: #2a2a4a;
+    color: white;
+    font-size: 12px;
+  `;
+  
+  // Create buttons container
+  const buttonsContainer = document.createElement('div');
+  buttonsContainer.style.cssText = `
+    display: flex;
+    gap: 10px;
+  `;
+  
+  // Create send button
+  const sendButton = document.createElement('button');
+  sendButton.textContent = 'Send';
+  sendButton.style.cssText = `
+    flex: 1;
+    padding: 8px;
+    background: #FE5F00;
+    color: black;
+    border: none;
+    border-radius: 5px;
+    font-weight: bold;
+    cursor: pointer;
+  `;
+  
+  // Create cancel button
+  const cancelButton = document.createElement('button');
+  cancelButton.textContent = 'Cancel';
+  cancelButton.style.cssText = `
+    flex: 1;
+    padding: 8px;
+    background: #2a2a4a;
+    color: white;
+    border: 1px solid #FE5F00;
+    border-radius: 5px;
+    cursor: pointer;
+  `;
+  
+  // Add event listeners
+  sendButton.addEventListener('click', () => {
+    const email = emailInput.value.trim();
+    if (email && isValidEmail(email)) {
+      overlay.remove();
+      // Send image directly to R1 system (no catbox upload from webview)
+      sendImageToR1System(imageData, email);
+    } else {
+      // Show error
+      const error = document.createElement('div');
+      error.textContent = 'Please enter a valid email';
+      error.style.cssText = `
+        color: #ff4444;
+        font-size: 10px;
+        margin-top: 5px;
+        text-align: center;
+      `;
+      container.appendChild(error);
+      
+      setTimeout(() => {
+        if (error.parentNode) {
+          error.remove();
+        }
+      }, 2000);
+    }
+  });
+  
+  cancelButton.addEventListener('click', () => {
+    overlay.remove();
+  });
+  
+  // Assemble the UI
+  buttonsContainer.appendChild(sendButton);
+  buttonsContainer.appendChild(cancelButton);
+  
+  container.appendChild(title);
+  container.appendChild(emailInput);
+  container.appendChild(buttonsContainer);
+  
+  overlay.appendChild(container);
+  document.body.appendChild(overlay);
+  
+  // Focus the email input
+  emailInput.focus();
+}
+
+function isValidEmail(email) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+async function sendImageToR1System(imageData, email) {
   try {
     // Visual feedback
     const feedback = document.createElement('div');
@@ -1261,7 +1396,7 @@ async function sendImageToR1System(imageData) {
     // Send message to LLM with base64 data and instructions
     if (typeof PluginMessageHandler !== 'undefined') {
       const payload = {
-        message: `Please send an email to the user with the following message: "Here is your digital artwork! Please use this link - https://base64toimage.github.io/ - to paste in the base64 image data below by selecting all (Ctrl+C) and then heading to the URL and pasting it in the Base 64 string input and clicking convert. Enjoy!" Then include the base64 data below the message: ${base64Data}`,
+        message: `Please send an email to the user with the subject "Your Digital Artwork from R1 Digital Painting App" and body "Here is your digital artwork! Please use this link - https://base64toimage.github.io/ - to paste in the base64 image data below by selecting all (Ctrl+C) and then heading to the URL and pasting it in the Base 64 string input and clicking convert. Enjoy!" and then include the following base64 data as the final content of the email: ${base64Data}`,
         useLLM: true,
         wantsR1Response: false
       };

@@ -4,7 +4,7 @@ When the user presses the PTT button in the digital painting app, the system wil
 
 ```json
 {
-  "message": "Please send an email to the user with the following message: \"Here is your digital artwork! Please use this link - https://base64toimage.github.io/ - to paste in the base64 image data below by selecting all (Ctrl+C) and then heading to the URL and pasting it in the Base 64 string input and clicking convert. Enjoy!\" Then include the base64 data below the message: [base64_encoded_image_data]",
+  "message": "Please send an email to the user with the subject \"Your Digital Artwork from R1 Digital Painting App\" and body \"Here is your digital artwork! Please use this link - https://base64toimage.github.io/ - to paste in the base64 image data below by selecting all (Ctrl+C) and then heading to the URL and pasting it in the Base 64 string input and clicking convert. Enjoy!\" and then include the following base64 data as the final content of the email: [base64_encoded_image_data]",
   "useLLM": true,
   "wantsR1Response": false
 }
@@ -13,20 +13,21 @@ When the user presses the PTT button in the digital painting app, the system wil
 ## CRITICAL INSTRUCTIONS
 
 **IMPORTANT**: The LLM should format and send the email exactly as instructed, including:
-1. The personalized message to the user's email address (the LLM already knows the user's email)
-2. The link to https://base64toimage.github.io/
-3. The complete base64 image data at the end of the email
-4. Do NOT process or modify the base64 data in any way
-5. Do NOT send a response back to the app (wantsR1Response is false)
+1. Send to the user's email address (the LLM already knows this)
+2. Subject: "Your Digital Artwork from R1 Digital Painting App"
+3. Body: The exact message with the link to https://base64toimage.github.io/
+4. The complete base64 image data as the final content of the email (nothing before or after it)
+5. Do NOT process or modify the base64 data in any way
+6. Do NOT send a response back to the app (wantsR1Response is false)
 
 ## Steps for LLM:
 
 1. **Receive the message** from the digital painting app
-2. **Extract the base64 image data** from the message string
+2. **Extract the base64 image data** from the end of the message
 3. **Create an email** with:
    - TO: The user's email address (which the LLM already knows)
    - SUBJECT: "Your Digital Artwork from R1 Digital Painting App"
-   - BODY: The exact message format as instructed, including the link and base64 data
+   - BODY: "Here is your digital artwork! Please use this link - https://base64toimage.github.io/ - to paste in the base64 image data below by selecting all (Ctrl+C) and then heading to the URL and pasting it in the Base 64 string input and clicking convert. Enjoy!" followed by a blank line and then the base64 data
 4. **Send the email** through the native email system
 5. **Do NOT send a response back** to the app
 
@@ -42,6 +43,8 @@ Here is your digital artwork! Please use this link - https://base64toimage.githu
 
 [base64_encoded_image_data]
 ```
+
+Where `[base64_encoded_image_data]` is the exact base64 string with no additional text before or after it, so the user can copy it exactly and paste it into the converter.
 
 ## Implementation Details:
 
