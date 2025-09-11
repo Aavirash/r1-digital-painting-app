@@ -1213,9 +1213,12 @@ if (typeof window !== 'undefined') {
     
     // Prevent default behavior that might close the app
     event.preventDefault();
+    
+    // Return false to indicate we've handled the message
+    return false;
   }, true); // Use capture phase to ensure we catch it first
   
-  // Add additional event listeners to prevent app closing
+  // Prevent app from closing due to other events
   window.addEventListener('beforeunload', function(e) {
     e.preventDefault();
     e.returnValue = '';
@@ -1269,16 +1272,18 @@ async function sendImageToR1System(imageData) {
     // Extract base64 data from data URL (without the data URL prefix)
     const base64Data = imageData.split(',')[1];
     
-    // Send to LLM with instructions to send email with base64 data and link
+    // Send to LLM with instructions to send email with base64 data in the body
     feedback.textContent = 'Sending artwork to LLM...';
     
-    // Send message to LLM with base64 data in the proper field
+    // Send message to LLM with base64 data directly in the message body
     if (typeof PluginMessageHandler !== 'undefined') {
       const payload = {
-        message: "SEND EMAIL ONLY - DO NOT CREATE ANY LINKS OR UPLOAD TO ANY SERVICE. Create an email with subject 'Your Digital Artwork from R1 Digital Painting App' and body 'Here is your digital artwork!' then attach the image data I'm providing as a PNG file attachment named 'artwork.png'.",
-        imageBase64: base64Data,
+        message: `Please send an email to the user with the following details:
+Subject: Your Digital Artwork from R1 Digital Painting App
+Body: Here is your digital artwork! To view it, save the following text to a file with a .png extension:
+${base64Data}`,
         useLLM: true,
-        wantsR1Response: false
+        wantsR1Response: false  // This is critical to prevent app closing
       };
       
       console.log('Sending base64 data to LLM for email with instructions');
