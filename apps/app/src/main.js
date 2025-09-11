@@ -1170,7 +1170,12 @@ window.onPluginMessage = function(data) {
     data.preventDefault();
   }
   
-  // Return false to indicate we've handled the message
+  // Stop propagation to prevent other handlers from closing the app
+  if (data && typeof data.stopPropagation === 'function') {
+    data.stopPropagation();
+  }
+  
+  // Always return false to indicate we've handled the message and prevent app closing
   return false;
 };
 
@@ -1209,7 +1214,13 @@ if (typeof window !== 'undefined') {
         }
       }, 3000);
     }
-  });
+    
+    // Prevent event from bubbling up and causing app to close
+    event.stopImmediatePropagation();
+    
+    // Prevent default behavior that might close the app
+    event.preventDefault();
+  }, true); // Use capture phase to ensure we catch it first
 }
 
 // Close advice overlay when clicked
@@ -1224,11 +1235,148 @@ function takeScreenshotAndSend() {
   // Take screenshot of canvas without UI elements
   const imageData = canvas.toDataURL('image/png');
   
-  // Send directly without email prompt
-  sendImageToR1System(imageData);
+  // Show email prompt
+  showEmailPrompt(imageData);
 }
 
-async function sendImageToR1System(imageData) {
+function showEmailPrompt(imageData) {
+  // Create overlay
+  const overlay = document.createElement('div');
+  overlay.id = 'emailOverlay';
+  overlay.style.cssText = `
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.9);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+  `;
+  
+  // Create prompt container
+  const container = document.createElement('div');
+  container.style.cssText = `
+    background: #1a1a2e;
+    border: 2px solid #FE5F00;
+    border-radius: 10px;
+    padding: 20px;
+    width: 80%;
+    max-width: 200px;
+  `;
+  
+  // Create title
+  const title = document.createElement('div');
+  title.textContent = 'Enter your email:';
+  title.style.cssText = `
+    color: white;
+    font-size: 14px;
+    margin-bottom: 15px;
+    text-align: center;
+  `;
+  
+  // Create email input
+  const emailInput = document.createElement('input');
+  emailInput.type = 'email';
+  emailInput.placeholder = 'your@email.com';
+  emailInput.style.cssText = `
+    width: 100%;
+    padding: 8px;
+    margin-bottom: 15px;
+    border: 1px solid #FE5F00;
+    border-radius: 5px;
+    background: #2a2a4a;
+    color: white;
+    font-size: 12px;
+  `;
+  
+  // Create buttons container
+  const buttonsContainer = document.createElement('div');
+  buttonsContainer.style.cssText = `
+    display: flex;
+    gap: 10px;
+  `;
+  
+  // Create send button
+  const sendButton = document.createElement('button');
+  sendButton.textContent = 'Send';
+  sendButton.style.cssText = `
+    flex: 1;
+    padding: 8px;
+    background: #FE5F00;
+    color: black;
+    border: none;
+    border-radius: 5px;
+    font-weight: bold;
+    cursor: pointer;
+  `;
+  
+  // Create cancel button
+  const cancelButton = document.createElement('button');
+  cancelButton.textContent = 'Cancel';
+  cancelButton.style.cssText = `
+    flex: 1;
+    padding: 8px;
+    background: #2a2a4a;
+    color: white;
+    border: 1px solid #FE5F00;
+    border-radius: 5px;
+    cursor: pointer;
+  `;
+  
+  // Add event listeners
+  sendButton.addEventListener('click', () => {
+    const email = emailInput.value.trim();
+    if (email && isValidEmail(email)) {
+      overlay.remove();
+      // Send image directly to R1 system (no catbox upload from webview)
+      sendImageToR1System(imageData, email);
+    } else {
+      // Show error
+      const error = document.createElement('div');
+      error.textContent = 'Please enter a valid email';
+      error.style.cssText = `
+        color: #ff4444;
+        font-size: 10px;
+        margin-top: 5px;
+        text-align: center;
+      `;
+      container.appendChild(error);
+      
+      setTimeout(() => {
+        if (error.parentNode) {
+          error.remove();
+        }
+      }, 2000);
+    }
+  });
+  
+  cancelButton.addEventListener('click', () => {
+    overlay.remove();
+  });
+  
+  // Assemble the UI
+  buttonsContainer.appendChild(sendButton);
+  buttonsContainer.appendChild(cancelButton);
+  
+  container.appendChild(title);
+  container.appendChild(emailInput);
+  container.appendChild(buttonsContainer);
+  
+  overlay.appendChild(container);
+  document.body.appendChild(overlay);
+  
+  // Focus the email input
+  emailInput.focus();
+}
+
+function isValidEmail(email) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+async function sendImageToR1System(imageData, email) {
   try {
     // Visual feedback
     const feedback = document.createElement('div');
@@ -1253,19 +1401,20 @@ async function sendImageToR1System(imageData) {
     // Extract base64 data from data URL (without the data URL prefix)
     const base64Data = imageData.split(',')[1];
     
-    // Send to LLM with instructions to send email with base64 data and link
-    feedback.textContent = 'Sending artwork to LLM...';
+    // Due to R1 device security restrictions, we cannot make direct external API calls
+    // Instead, we send the image data to the R1 system which will handle the upload
+    feedback.textContent = 'Sending artwork to R1 system...';
     
-    // Send message to LLM with base64 data in the proper field
+    // Send image data to R1 system for secure upload and email
     if (typeof PluginMessageHandler !== 'undefined') {
       const payload = {
-        message: "Please send an email to the user with their digital artwork attachment. Subject: 'Your Digital Artwork from R1 Digital Painting App'. Body: 'Here is your digital artwork! Please use this link - https://base64toimage.github.io/ - to convert the base64 data to an image.'",
+        message: `Please upload this digital artwork to ImgBB and email the public URL to ${email}. Use API key: 1a2fc605085e16887ec98e57fce39914`,
         imageBase64: base64Data,
-        useLLM: true,
-        wantsR1Response: false
+        recipientEmail: email,
+        action: "uploadToImgBBAndEmail"
       };
       
-      console.log('Sending base64 data to LLM for email with instructions');
+      console.log('Sending image data to R1 system for secure processing');
       
       try {
         PluginMessageHandler.postMessage(JSON.stringify(payload));
@@ -1273,7 +1422,7 @@ async function sendImageToR1System(imageData) {
         // Update feedback
         setTimeout(() => {
           if (feedback.parentNode) {
-            feedback.textContent = 'Email request sent to LLM...';
+            feedback.textContent = 'R1 system is processing your request...';
             setTimeout(() => {
               if (feedback.parentNode) {
                 feedback.remove();
@@ -1283,7 +1432,7 @@ async function sendImageToR1System(imageData) {
         }, 1000);
       } catch (postError) {
         console.error('Error posting message to PluginMessageHandler:', postError);
-        throw new Error('Failed to communicate with LLM');
+        throw new Error('Failed to communicate with R1 system');
       }
     } else {
       throw new Error('PluginMessageHandler not available - not running in R1 environment');
