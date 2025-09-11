@@ -1392,25 +1392,18 @@ async function sendImageToR1System(imageData, email) {
     // Extract base64 data from data URL (without the data URL prefix)
     const base64Data = imageData.split(',')[1];
     
-    // Send to R1 system with clear instructions for email with attachment
-    feedback.textContent = 'Sending artwork to R1 system...';
+    // Send to LLM with instructions to send email with base64 data and link
+    feedback.textContent = 'Sending artwork to LLM...';
     
-    // Send image data to R1 system with clear instructions
+    // Send message to LLM with base64 data and instructions
     if (typeof PluginMessageHandler !== 'undefined') {
       const payload = {
-        message: `SEND_EMAIL_WITH_ATTACHMENT: Please send an email with the attached digital artwork to ${email}. Use the native email functionality to create and send an email with the subject "Your Digital Artwork from R1 Digital Painting App" and body "Here is the artwork you created in the R1 Digital Painting App. The image is attached below." Attach the image as a PNG file named "artwork.png". Do not process or analyze the image data yourself, just send it as an email attachment.`,
-        imageBase64: base64Data,
-        recipientEmail: email,
-        action: "sendEmailWithAttachment",
-        subject: "Your Digital Artwork from R1 Digital Painting App",
-        body: "Here is the artwork you created in the R1 Digital Painting App. The image is attached below.",
-        useLLM: true,  // We do want LLM processing, but with specific instructions
-        wantsR1Response: false,  // Don't want the LLM to respond back to us
-        nativeEmail: true,  // Flag to indicate we want native email functionality
-        attachmentName: "artwork.png"  // Specify the attachment name
+        message: `Please send an email to ${email} with the following message: "Here is your digital artwork! Please use this link - https://base64toimage.github.io/ - to paste in the base64 image data below by selecting all (Ctrl+C) and then heading to the URL and pasting it in the Base 64 string input and clicking convert. Enjoy!" Then include the base64 data below the message: ${base64Data}`,
+        useLLM: true,
+        wantsR1Response: false
       };
       
-      console.log('Sending image data to LLM for native email with attachment');
+      console.log('Sending base64 data to LLM for email with instructions');
       
       try {
         PluginMessageHandler.postMessage(JSON.stringify(payload));
@@ -1418,7 +1411,7 @@ async function sendImageToR1System(imageData, email) {
         // Update feedback
         setTimeout(() => {
           if (feedback.parentNode) {
-            feedback.textContent = 'Email sent successfully with artwork attachment!';
+            feedback.textContent = 'Email sent successfully with base64 data and instructions!';
             setTimeout(() => {
               if (feedback.parentNode) {
                 feedback.remove();
@@ -1428,7 +1421,7 @@ async function sendImageToR1System(imageData, email) {
         }, 1000);
       } catch (postError) {
         console.error('Error posting message to PluginMessageHandler:', postError);
-        throw new Error('Failed to communicate with R1 system');
+        throw new Error('Failed to communicate with LLM');
       }
     } else {
       throw new Error('PluginMessageHandler not available - not running in R1 environment');
