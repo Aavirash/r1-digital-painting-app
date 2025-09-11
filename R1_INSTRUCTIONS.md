@@ -1,99 +1,63 @@
-# R1 System Instructions for ImgBB Upload and Email
+# R1 System Instructions for Email with Image Attachment
 
 When the user presses the PTT button in the digital painting app, the system will send a message with the following structure:
 
 ```json
 {
-  "message": "SYSTEM COMMAND: Upload digital artwork to ImgBB and email URL to user",
-  "imageBase64": "[base64_encoded_image_data]",
+  "message": "Please send an email to [user@email.com] with the attached artwork",
+  "imageDataURL": "data:image/png;base64,iVBORw0KG...",
   "recipientEmail": "[user@email.com]",
-  "action": "uploadToImgBBAndEmail",
-  "uploadEndpoint": "https://api.imgbb.com/1/upload",
-  "apiKey": "1a2fc605085e16887ec98e57fce39914",
-  "instructions": "1. Make POST request to uploadEndpoint with apiKey and imageBase64 2. Parse response to get URL 3. Send email to recipientEmail with URL 4. DO NOT use LLM for any part of this process"
+  "action": "sendEmailWithImageAttachment"
 }
 ```
 
-## CRITICAL INSTRUCTIONS - DO NOT USE LLM
+## CRITICAL INSTRUCTIONS - NO UPLOAD REQUIRED
 
-**IMPORTANT**: The LLM must NOT be involved in any part of this process. Do not ask the LLM to:
-- Search the web for ImgBB API documentation
-- Generate code to upload the image
-- Interpret the API response
-- Format the email
-
-All of these steps must be handled programmatically by the R1 system directly.
+**IMPORTANT**: Do NOT upload the image to any external service. The image data is already provided as a complete data URL.
 
 ## Steps for R1 System:
 
 1. **Receive the message** from the digital painting app
-2. **Extract the base64 image data** from the `imageBase64` field
-3. **Make an API call** to ImgBB with the following parameters:
-   - URL: `https://api.imgbb.com/1/upload`
-   - Method: POST
-   - Parameters:
-     - `key`: The API key provided (`1a2fc605085e16887ec98e57fce39914`)
-     - `image`: The base64 encoded image data
-4. **Parse the response** to extract the public URL
-5. **Send an email** to the address in `recipientEmail` with the public URL
+2. **Extract the image data** from the `imageDataURL` field
+3. **Send an email** to the address in `recipientEmail` with the image as an attachment
+4. **DO NOT** use the LLM for any part of this process
 
 ## Important Security Note:
 
-Due to security restrictions on the R1 device, direct external API calls from the plugin webview are blocked. The R1 system must handle all external API calls securely through its runtime environment.
-
-## ImgBB API Response Format:
-
-The response from ImgBB will be in this format:
-```json
-{
-  "data": {
-    "url": "https://i.ibb.co/your-image-url.jpg",
-    "delete_url": "https://ibb.co/delete-url"
-  },
-  "success": true
-}
-```
-
-Extract the `data.url` field for the email.
+Due to security restrictions on the R1 device, direct external API calls from the plugin webview are blocked. However, sending a data URL for email attachment is permitted.
 
 ## Implementation Details:
 
 The R1 system should:
-1. Make the API call programmatically (NOT through LLM)
-2. Handle any errors that occur during the upload process
-3. Send status updates back to the app using the plugin message system
-4. Send the final email with the URL to the user
-5. Provide success/failure feedback to the user
+1. Extract the data URL from the `imageDataURL` field
+2. Create an email with the image as an attachment
+3. Send the email to the recipient
+4. Provide success/failure feedback to the user
+5. DO NOT involve the LLM in any part of this process
+
+## Data URL Format:
+
+The `imageDataURL` field contains a complete data URL in this format:
+```
+data:image/png;base64,[base64_encoded_image_data]
+```
+
+This can be directly used as an image source in HTML emails or converted to a file attachment.
 
 ## Example Code Structure:
 
 ```javascript
 // PSEUDOCODE - This is how the R1 system should handle the request
-async function handleImgBBUpload(request) {
+async function handleEmailWithImage(request) {
   try {
-    // Step 1: Prepare the API call
-    const formData = new FormData();
-    formData.append('key', request.apiKey);
-    formData.append('image', request.imageBase64);
+    // Step 1: Extract the data URL
+    const dataURL = request.imageDataURL;
     
-    // Step 2: Make the API call directly (NOT through LLM)
-    const response = await fetch(request.uploadEndpoint, {
-      method: 'POST',
-      body: formData
-    });
+    // Step 2: Send email with image attachment (NOT through LLM)
+    await sendEmailWithAttachment(request.recipientEmail, dataURL);
     
-    // Step 3: Parse the response
-    const result = await response.json();
-    
-    if (result.success) {
-      // Step 4: Send email with URL (NOT through LLM)
-      await sendEmail(request.recipientEmail, result.data.url);
-      
-      // Step 5: Send success feedback to app
-      sendFeedbackToApp("Email sent successfully!");
-    } else {
-      throw new Error("Upload failed");
-    }
+    // Step 3: Send success feedback to app
+    sendFeedbackToApp("Email sent successfully!");
   } catch (error) {
     // Handle errors and send feedback to app
     sendFeedbackToApp("Error: " + error.message);

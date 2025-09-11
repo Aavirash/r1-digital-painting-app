@@ -1,4 +1,4 @@
-# R1 Digital Painting App with ImgBB Integration
+# R1 Digital Painting App with Direct Email Integration
 
 This is a digital painting application designed for the R1 device that allows users to create artwork and share it via email with a public URL.
 
@@ -10,32 +10,30 @@ This is a digital painting application designed for the R1 device that allows us
 - Accelerometer integration for dynamic effects
 - PTT button integration for screenshot capture and sharing
 
-## ImgBB Integration
+## Direct Email Integration
 
 When the user presses the PTT button, the app:
 
-1. Takes a screenshot of the current canvas
+1. Takes a screenshot of the current canvas as a data URL
 2. Prompts the user for their email address
-3. Sends the image data to the R1 system with instructions to:
-   - Upload the image to ImgBB using the provided API key
-   - Extract the public URL from the ImgBB response
-   - Send an email to the user with the public URL
-   - All processing is done securely by the R1 system (not through LLM)
+3. Sends the image data URL directly to the R1 system with instructions to:
+   - Send an email to the user with the image as an attachment
+   - No external API calls or uploads are required
+   - All processing is done securely by the R1 system
 
 ## Technical Implementation
 
 The app uses the R1 Creations SDK to communicate with the device:
 
 - `PluginMessageHandler` to send messages to the R1 system
-- Base64 encoding for image data transmission
-- ImgBB API for image hosting (API key: 1a2fc605085e16887ec98e57fce39914)
-- Secure processing by the R1 system (no direct API calls from webview due to security restrictions)
+- Canvas `toDataURL()` method for image capture
+- Direct data URL transmission (no external services)
+- Secure processing by the R1 system
 
 ## Files
 
 - `apps/app/src/main.js` - Main application logic
 - `R1_INSTRUCTIONS.md` - Detailed instructions for the R1 system
-- `test-imgbb-upload.js` - Example script demonstrating ImgBB API usage
 
 ## Setup
 
@@ -47,4 +45,4 @@ The app uses the R1 Creations SDK to communicate with the device:
 
 The app is designed to run as an R1 Creation plugin. The built files in the `dist` directory can be deployed to the R1 device.
 
-Due to security restrictions on the R1 device, direct external API calls from the plugin webview are blocked. The R1 system handles the ImgBB upload and email sending securely through its runtime environment. The LLM is only involved in sending the final email with the URL to the user.
+Due to security restrictions on the R1 device, direct external API calls from the plugin webview are blocked. However, sending a data URL for email attachment is permitted. The R1 system handles the email sending securely through its runtime environment without involving any external services or the LLM.
