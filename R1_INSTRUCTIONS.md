@@ -4,7 +4,9 @@ When the user presses the PTT button in the digital painting app, the system wil
 
 ```json
 {
-  "message": "Please send an email to [user@email.com] with the artwork attached. The artwork is provided as a data URL: data:image/png;base64,... Please format the email so the image is displayed properly, either as an inline image or attachment.",
+  "message": "Please send an email to [user@email.com] with the attached artwork. Format the email with a subject 'Your Digital Artwork' and include the image as an attachment.",
+  "imageBase64": "[base64_encoded_image_data]",
+  "recipientEmail": "[user@email.com]",
   "useLLM": true,
   "wantsR1Response": true
 }
@@ -17,52 +19,34 @@ When the user presses the PTT button in the digital painting app, the system wil
 ## Steps for LLM:
 
 1. **Receive the message** from the digital painting app
-2. **Extract the data URL** from the message text
-3. **Format an email** to the recipient with the image properly displayed
+2. **Extract the base64 image data** from the `imageBase64` field
+3. **Format an email** to the recipient with the image properly attached
 4. **Send the email** through the R1 email system
 
 ## Important Security Note:
 
-Due to security restrictions on the R1 device, direct external API calls from the plugin webview are blocked. However, sending a data URL through the LLM for email formatting is permitted.
+Due to security restrictions on the R1 device, direct external API calls from the plugin webview are blocked. However, sending base64 image data through the LLM for email formatting is permitted.
 
 ## Implementation Details:
 
 The LLM should:
-1. Parse the data URL from the message
-2. Create an email with the image properly formatted (either inline or as attachment)
-3. Send the email to the recipient
+1. Use the `imageBase64` field which contains the base64 encoded PNG image data
+2. Create an email with the image as an attachment
+3. Send the email to the address in `recipientEmail`
 4. Provide success/failure feedback to the user
-
-## Data URL Format:
-
-The data URL contains a complete image in this format:
-```
-data:image/png;base64,[base64_encoded_image_data]
-```
-
-This can be used directly as an image source in HTML emails or converted to a file attachment.
 
 ## Email Formatting Guidelines:
 
 1. **Subject**: "Your Digital Artwork"
 2. **Body**: "Here is the artwork you created in the R1 Digital Painting App."
-3. **Image**: Should be displayed properly either as:
-   - Inline image in the email body
-   - Attachment to the email
-4. **Format**: HTML email preferred for better image display
+3. **Attachment**: The image should be attached to the email
+4. **Format**: HTML email preferred for better presentation
 
 ## Example Email Structure:
 
-```html
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Your Digital Artwork</title>
-</head>
-<body>
-    <h2>Your Digital Artwork</h2>
-    <p>Here is the artwork you created in the R1 Digital Painting App.</p>
-    <img src="data:image/png;base64,..." alt="Digital Artwork" style="max-width: 100%;">
-</body>
-</html>
+```
+To: [recipientEmail]
+Subject: Your Digital Artwork
+Body: Here is the artwork you created in the R1 Digital Painting App.
+Attachment: artwork.png (created from the base64 data)
 ```

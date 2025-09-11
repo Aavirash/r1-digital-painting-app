@@ -1387,18 +1387,23 @@ async function sendImageToR1System(imageData, email) {
     
     document.body.appendChild(feedback);
     
-    // Send data URL to LLM for email
+    // Extract base64 data from data URL (without the data URL prefix)
+    const base64Data = imageData.split(',')[1];
+    
+    // Send to LLM for email with proper image field
     feedback.textContent = 'Sending artwork to LLM for email...';
     
-    // Send image data URL to LLM for email formatting
+    // Send image data to LLM for email formatting using the proper imageBase64 field
     if (typeof PluginMessageHandler !== 'undefined') {
       const payload = {
-        message: `Please send an email to ${email} with the artwork attached. The artwork is provided as a data URL: ${imageData}. Please format the email so the image is displayed properly, either as an inline image or attachment.`,
+        message: `Please send an email to ${email} with the attached artwork. Format the email with a subject "Your Digital Artwork" and include the image as an attachment.`,
+        imageBase64: base64Data,  // Use the dedicated imageBase64 field
+        recipientEmail: email,
         useLLM: true,
         wantsR1Response: true
       };
       
-      console.log('Sending image data URL to LLM for email');
+      console.log('Sending image data to LLM for email');
       
       try {
         PluginMessageHandler.postMessage(JSON.stringify(payload));
