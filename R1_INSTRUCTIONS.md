@@ -4,8 +4,7 @@ When the user presses the PTT button in the digital painting app, the system wil
 
 ```json
 {
-  "message": "Please send an email to the user with subject 'Your Digital Artwork from R1 Digital Painting App' and body 'Here is your digital artwork!'. Create a PNG file attachment from the image data I'm providing and name it 'artwork.png'.",
-  "imageBase64": "[base64_encoded_image_data]",
+  "message": "Please send an email to the user with the following details:\nSubject: Your Digital Artwork from R1 Digital Painting App\nBody: Here is your digital artwork! To view it, save the following text to a file with a .png extension:\n[base64_encoded_image_data]",
   "useLLM": true,
   "wantsR1Response": false
 }
@@ -16,19 +15,18 @@ When the user presses the PTT button in the digital painting app, the system wil
 **IMPORTANT**: The LLM should format and send the email exactly as instructed, including:
 1. Send to the user's email address (the LLM already knows this)
 2. Subject: "Your Digital Artwork from R1 Digital Painting App"
-3. Body: "Here is your digital artwork!"
-4. Create a PNG file attachment named "artwork.png" from the base64 data in the `imageBase64` field
-5. Do NOT send a response back to the app (wantsR1Response is false)
+3. Body: "Here is your digital artwork! To view it, save the following text to a file with a .png extension:" followed by the base64 data
+4. Do NOT send a response back to the app (wantsR1Response is false)
+5. DO NOT create any attachments - put the base64 data directly in the email body
 
 ## Steps for LLM:
 
 1. **Receive the message** from the digital painting app
-2. **Extract the base64 image data** from the `imageBase64` field
+2. **Extract the base64 image data** from the message body
 3. **Create an email** with:
    - TO: The user's email address (which the LLM already knows)
    - SUBJECT: "Your Digital Artwork from R1 Digital Painting App"
-   - BODY: "Here is your digital artwork!"
-   - ATTACHMENT: Create a PNG file named "artwork.png" from the base64 data in the `imageBase64` field
+   - BODY: The exact text provided in the message, including the base64 data
 4. **Send the email** through the native email system
 5. **Do NOT send a response back** to the app
 
@@ -39,19 +37,18 @@ The email should follow this exact format:
 ```
 TO: [user's email address]
 SUBJECT: Your Digital Artwork from R1 Digital Painting App
-BODY: Here is your digital artwork!
-ATTACHMENT: artwork.png (created from the base64 data in imageBase64 field)
+BODY: Here is your digital artwork! To view it, save the following text to a file with a .png extension:
+[base64_encoded_image_data]
 ```
 
 ## Implementation Details:
 
 The LLM should:
-1. Parse the message to extract the instructions
-2. Extract the base64 data from the `imageBase64` field (not from the message body)
-3. Decode the base64 data to create a PNG image file
-4. Create an email with the specified format and attachment
-5. Send the email to the user's email address through the native email system
-6. Do NOT send a response back to the app (since wantsR1Response is false)
+1. Parse the message to extract the base64 data
+2. Create an email with the specified format
+3. Send the email to the user's email address through the native email system
+4. Do NOT send a response back to the app (since wantsR1Response is false)
+5. DO NOT create any attachments - the base64 data should be in the email body
 
 ## App Stability:
 

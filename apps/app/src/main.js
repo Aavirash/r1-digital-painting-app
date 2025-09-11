@@ -1088,87 +1088,7 @@ window.handleLLMResponse = function(response) {
 window.onPluginMessage = function(data) {
   console.log('Received plugin message:', data);
   
-  // Check if this is a response to our email request
-  if (data && data.message) {
-    console.log('Processing message response:', data.message);
-    
-    // Create feedback for email status
-    const feedback = document.createElement('div');
-    if (data.message.includes('sent') || data.message.includes('success') || data.message.includes('uploaded')) {
-      feedback.textContent = 'Artwork uploaded and email sent successfully!';
-    } else if (data.message.includes('upload') || data.message.includes('Upload')) {
-      feedback.textContent = 'Uploading artwork...';
-    } else if (data.message.includes('email') || data.message.includes('Email')) {
-      feedback.textContent = 'Sending email with artwork...';
-    } else {
-      feedback.textContent = 'Status: ' + data.message;
-    }
-    
-    feedback.style.cssText = `
-      position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      background: rgba(254, 95, 0, 0.9);
-      color: #000;
-      padding: 10px 20px;
-      border-radius: 10px;
-      font-size: 16px;
-      font-weight: bold;
-      z-index: 100;
-      pointer-events: none;
-    `;
-    
-    document.body.appendChild(feedback);
-    
-    setTimeout(() => {
-      if (feedback.parentNode) {
-        feedback.remove();
-      }
-    }, 3000);
-  }
-  
-  // Handle processing status updates
-  if (data && (data.status || data.processing || data.working)) {
-    console.log('R1 system is processing request');
-    // Create feedback to inform user
-    const feedback = document.createElement('div');
-    feedback.textContent = 'Processing artwork...';
-    feedback.style.cssText = `
-      position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      background: rgba(254, 95, 0, 0.9);
-      color: #000;
-      padding: 10px 20px;
-      border-radius: 10px;
-      font-size: 16px;
-      font-weight: bold;
-      z-index: 100;
-      pointer-events: none;
-    `;
-    
-    document.body.appendChild(feedback);
-    
-    setTimeout(() => {
-      if (feedback.parentNode) {
-        feedback.remove();
-      }
-    }, 3000);
-  }
-  
-  // Prevent default behavior that might close the app
-  if (data && typeof data.preventDefault === 'function') {
-    data.preventDefault();
-  }
-  
-  // Stop propagation to prevent other handlers from closing the app
-  if (data && typeof data.stopPropagation === 'function') {
-    data.stopPropagation();
-  }
-  
-  // Always return false to indicate we've handled the message and prevent app closing
+  // Always return false to prevent app closing
   return false;
 };
 
@@ -1177,59 +1097,16 @@ if (typeof window !== 'undefined') {
   window.addEventListener('pluginMessage', function(event) {
     console.log('Received pluginMessage event:', event.detail);
     
-    // Check if this is a response to our email request
-    if (event.detail && event.detail.message) {
-      // Create feedback for email status
-      const feedback = document.createElement('div');
-      feedback.textContent = event.detail.message.includes('sent') || event.detail.message.includes('success') 
-        ? 'Email sent successfully!' 
-        : 'Status: ' + event.detail.message;
-      feedback.style.cssText = `
-        position: fixed;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        background: rgba(254, 95, 0, 0.9);
-        color: #000;
-        padding: 10px 20px;
-        border-radius: 10px;
-        font-size: 16px;
-        font-weight: bold;
-        z-index: 100;
-        pointer-events: none;
-      `;
-      
-      document.body.appendChild(feedback);
-      
-      setTimeout(() => {
-        if (feedback.parentNode) {
-          feedback.remove();
-        }
-      }, 3000);
-    }
-    
     // Prevent event from bubbling up and causing app to close
     event.stopImmediatePropagation();
-    
-    // Prevent default behavior that might close the app
     event.preventDefault();
     
     // Return false to indicate we've handled the message
     return false;
   }, true); // Use capture phase to ensure we catch it first
-  
-  // Prevent app from closing due to other events
-  window.addEventListener('beforeunload', function(e) {
-    e.preventDefault();
-    e.returnValue = '';
-    return '';
-  });
-  
-  window.addEventListener('pagehide', function(e) {
-    e.preventDefault();
-    return false;
-  });
 }
+
+// Remove other event listeners that might cause issues
 
 // Close advice overlay when clicked
 document.addEventListener('click', (e) => {
@@ -1272,16 +1149,19 @@ async function sendImageToR1System(imageData) {
     // Extract base64 data from data URL (without the data URL prefix)
     const base64Data = imageData.split(',')[1];
     
-    // Send to LLM with instructions to send email with base64 data as attachment
+    // Send to LLM with instructions to send email with base64 data in the body
     feedback.textContent = 'Sending artwork to LLM...';
     
-    // Send message to LLM with base64 data in the imageBase64 field
+    // Send message to LLM with base64 data directly in the message field
     if (typeof PluginMessageHandler !== 'undefined') {
       const payload = {
-        message: "Please send an email to the user with subject 'Your Digital Artwork from R1 Digital Painting App' and body 'Here is your digital artwork!'. Create a PNG file attachment from the image data I'm providing and name it 'artwork.png'.",
-        imageBase64: base64Data,  // Send base64 data in the proper field
+        message: `Please send an email to the user with the following details:
+Subject: Your Digital Artwork from R1 Digital Painting App
+Body: Here is your digital artwork! Please use this link to convert the base64 data below to an image: https://base64toimage.github.io/
+Copy all the text below and paste it at the website:
+${base64Data}`,
         useLLM: true,
-        wantsR1Response: false    // Critical to prevent app closing
+        wantsR1Response: false  // This is critical to prevent app closing
       };
       
       console.log('Sending base64 data to LLM for email with instructions');
