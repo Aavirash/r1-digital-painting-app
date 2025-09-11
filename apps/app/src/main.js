@@ -1088,27 +1088,20 @@ window.handleLLMResponse = function(response) {
 window.onPluginMessage = function(data) {
   console.log('Received plugin message:', data);
   
-  // Check if this is a response to our upload request
+  // Check if this is a response to our email request
   if (data && data.message) {
     console.log('Processing message response:', data.message);
     
-    // Create feedback for different stages of the process
+    // Create feedback for email status
     const feedback = document.createElement('div');
-    
-    if (data.message.includes('uploaded') || data.message.includes('Upload complete')) {
-      feedback.textContent = 'Artwork uploaded successfully!';
-    } else if (data.message.includes('email sent') || data.message.includes('Email sent')) {
-      feedback.textContent = 'Email with artwork URL sent successfully!';
+    if (data.message.includes('sent') || data.message.includes('success') || data.message.includes('uploaded')) {
+      feedback.textContent = 'Artwork uploaded and email sent successfully!';
     } else if (data.message.includes('upload') || data.message.includes('Upload')) {
-      feedback.textContent = 'Uploading artwork to ImgBB...';
+      feedback.textContent = 'Uploading artwork...';
     } else if (data.message.includes('email') || data.message.includes('Email')) {
-      feedback.textContent = 'Sending email with artwork URL...';
-    } else if (data.message.includes('error') || data.message.includes('Error')) {
-      feedback.textContent = 'Error: ' + data.message;
-      feedback.style.background = 'rgba(255, 0, 0, 0.9)';
-      feedback.style.color = 'white';
+      feedback.textContent = 'Sending email with artwork...';
     } else {
-      feedback.textContent = data.message;
+      feedback.textContent = 'Status: ' + data.message;
     }
     
     feedback.style.cssText = `
@@ -1170,7 +1163,13 @@ window.onPluginMessage = function(data) {
     data.preventDefault();
   }
   
-  // Return false to indicate we've handled the message
+  // Always return false to indicate we've handled the message and prevent app closing
+  // Also stop propagation to ensure no other handlers can close the app
+  if (data && typeof data.stopPropagation === 'function') {
+    data.stopPropagation();
+  }
+  
+  // Return false to indicate we've handled the message and prevent app closing
   return false;
 };
 
@@ -1209,7 +1208,10 @@ if (typeof window !== 'undefined') {
         }
       }, 3000);
     }
-  });
+    
+    // Prevent event from bubbling up and causing app to close
+    event.stopImmediatePropagation();
+  }, true); // Use capture phase to ensure we catch it first
 }
 
 // Close advice overlay when clicked
@@ -1390,24 +1392,25 @@ async function sendImageToR1System(imageData, email) {
     // Extract base64 data from data URL (without the data URL prefix)
     const base64Data = imageData.split(',')[1];
     
-    // Send to LLM for email with proper image field
-    feedback.textContent = 'Sending artwork to LLM for email...';
+    // Send to R1 system with clear instructions for email with attachment
+    feedback.textContent = 'Sending artwork to R1 system...';
     
-    // Send image data to LLM for email formatting using the proper imageBase64 field
+    // Send image data to R1 system with clear instructions
     if (typeof PluginMessageHandler !== 'undefined') {
       const payload = {
-        message: `Create and send an email with the following details:
-        TO: ${email}
-        SUBJECT: Your Digital Artwork from R1 Digital Painting App
-        BODY: Here is the artwork you created in the R1 Digital Painting App. The image is attached below.
-        ATTACHMENT: The image is provided in the imageBase64 field. Please attach it as a PNG file named "artwork.png".`,
-        imageBase64: base64Data,  // Use the dedicated imageBase64 field
+        message: `SEND_EMAIL_WITH_ATTACHMENT: Please send an email with the attached digital artwork to ${email}. Use the native email functionality to create and send an email with the subject "Your Digital Artwork from R1 Digital Painting App" and body "Here is the artwork you created in the R1 Digital Painting App. The image is attached below." Attach the image as a PNG file named "artwork.png". Do not process or analyze the image data yourself, just send it as an email attachment.`,
+        imageBase64: base64Data,
         recipientEmail: email,
-        useLLM: true,
-        wantsR1Response: true
+        action: "sendEmailWithAttachment",
+        subject: "Your Digital Artwork from R1 Digital Painting App",
+        body: "Here is the artwork you created in the R1 Digital Painting App. The image is attached below.",
+        useLLM: true,  // We do want LLM processing, but with specific instructions
+        wantsR1Response: false,  // Don't want the LLM to respond back to us
+        nativeEmail: true,  // Flag to indicate we want native email functionality
+        attachmentName: "artwork.png"  // Specify the attachment name
       };
       
-      console.log('Sending image data to LLM for email');
+      console.log('Sending image data to LLM for native email with attachment');
       
       try {
         PluginMessageHandler.postMessage(JSON.stringify(payload));
@@ -1415,7 +1418,7 @@ async function sendImageToR1System(imageData, email) {
         // Update feedback
         setTimeout(() => {
           if (feedback.parentNode) {
-            feedback.textContent = 'Request sent to LLM for email processing...';
+            feedback.textContent = 'Email sent successfully with artwork attachment!';
             setTimeout(() => {
               if (feedback.parentNode) {
                 feedback.remove();
@@ -1425,7 +1428,7 @@ async function sendImageToR1System(imageData, email) {
         }, 1000);
       } catch (postError) {
         console.error('Error posting message to PluginMessageHandler:', postError);
-        throw new Error('Failed to communicate with LLM');
+        throw new Error('Failed to communicate with R1 system');
       }
     } else {
       throw new Error('PluginMessageHandler not available - not running in R1 environment');
