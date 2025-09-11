@@ -1087,20 +1087,17 @@ window.handleLLMResponse = function(response) {
 // Handle plugin messages to prevent app from closing
 window.onPluginMessage = function(data) {
   console.log('Received plugin message:', data);
-  
-  // Always return false to prevent app closing
+  // Do nothing and return false to prevent app closing
   return false;
 };
 
-// Also add an event listener for the pluginMessage event
+// Add event listener for the pluginMessage event to prevent app closing
 if (typeof window !== 'undefined') {
   window.addEventListener('pluginMessage', function(event) {
     console.log('Received pluginMessage event:', event.detail);
-    
     // Prevent event from bubbling up and causing app to close
     event.stopImmediatePropagation();
     event.preventDefault();
-    
     // Return false to indicate we've handled the message
     return false;
   }, true); // Use capture phase to ensure we catch it first
@@ -1117,11 +1114,42 @@ document.addEventListener('click', (e) => {
 });
 
 function takeScreenshotAndSend() {
-  // Take screenshot of canvas without UI elements
-  const imageData = canvas.toDataURL('image/png');
-  
-  // Send directly without email prompt
-  sendImageToR1System(imageData);
+  try {
+    // Take screenshot of canvas without UI elements
+    const imageData = canvas.toDataURL('image/png');
+    
+    // Send directly without email prompt
+    sendImageToR1System(imageData);
+  } catch (error) {
+    console.error('Error taking screenshot:', error);
+    // Show error feedback
+    const errorFeedback = document.createElement('div');
+    errorFeedback.textContent = 'Failed to capture artwork: ' + error.message;
+    errorFeedback.style.cssText = `
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(255, 0, 0, 0.9);
+      color: white;
+      padding: 10px 20px;
+      border-radius: 10px;
+      font-size: 12px;
+      font-weight: bold;
+      z-index: 100;
+      pointer-events: none;
+      max-width: 80%;
+      text-align: center;
+    `;
+    
+    document.body.appendChild(errorFeedback);
+    
+    setTimeout(() => {
+      if (errorFeedback.parentNode) {
+        errorFeedback.remove();
+      }
+    }, 5000);
+  }
 }
 
 async function sendImageToR1System(imageData) {
