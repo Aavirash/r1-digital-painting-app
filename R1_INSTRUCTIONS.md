@@ -4,7 +4,7 @@ When the user presses the PTT button in the digital painting app, the system wil
 
 ```json
 {
-  "message": "Please send an email to the user with subject 'Your Digital Artwork from R1 Digital Painting App'. Create an email body with the text 'Here is your digital artwork!' and attach the image data I'm providing as a PNG file attachment named 'artwork.png'.",
+  "message": "SEND EMAIL ONLY - DO NOT CREATE ANY LINKS OR UPLOAD TO ANY SERVICE. Create an email with subject 'Your Digital Artwork from R1 Digital Painting App' and body 'Here is your digital artwork!' then attach the image data I'm providing as a PNG file attachment named 'artwork.png'.",
   "imageBase64": "[base64_encoded_image_data]",
   "useLLM": true,
   "wantsR1Response": false
@@ -18,7 +18,8 @@ When the user presses the PTT button in the digital painting app, the system wil
 2. Subject: "Your Digital Artwork from R1 Digital Painting App"
 3. Body: "Here is your digital artwork!"
 4. Create a PNG file attachment named "artwork.png" from the base64 data in the `imageBase64` field
-5. Do NOT send a response back to the app (wantsR1Response is false)
+5. DO NOT create any links or upload to any service (especially not Google Drive)
+6. Do NOT send a response back to the app (wantsR1Response is false)
 
 ## Steps for LLM:
 
@@ -51,6 +52,7 @@ The LLM should:
 3. Create an email with the specified format and attachment
 4. Send the email to the user's email address through the native email system
 5. Do NOT send a response back to the app (since wantsR1Response is false)
+6. DO NOT create any links or upload to any service
 
 ## App Stability:
 

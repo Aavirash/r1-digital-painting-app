@@ -1214,6 +1214,18 @@ if (typeof window !== 'undefined') {
     // Prevent default behavior that might close the app
     event.preventDefault();
   }, true); // Use capture phase to ensure we catch it first
+  
+  // Add additional event listeners to prevent app closing
+  window.addEventListener('beforeunload', function(e) {
+    e.preventDefault();
+    e.returnValue = '';
+    return '';
+  });
+  
+  window.addEventListener('pagehide', function(e) {
+    e.preventDefault();
+    return false;
+  });
 }
 
 // Close advice overlay when clicked
@@ -1263,7 +1275,7 @@ async function sendImageToR1System(imageData) {
     // Send message to LLM with base64 data in the proper field
     if (typeof PluginMessageHandler !== 'undefined') {
       const payload = {
-        message: "Please send an email to the user with subject 'Your Digital Artwork from R1 Digital Painting App'. Create an email body with the text 'Here is your digital artwork!' and attach the image data I'm providing as a PNG file attachment named 'artwork.png'.",
+        message: "SEND EMAIL ONLY - DO NOT CREATE ANY LINKS OR UPLOAD TO ANY SERVICE. Create an email with subject 'Your Digital Artwork from R1 Digital Painting App' and body 'Here is your digital artwork!' then attach the image data I'm providing as a PNG file attachment named 'artwork.png'.",
         imageBase64: base64Data,
         useLLM: true,
         wantsR1Response: false
