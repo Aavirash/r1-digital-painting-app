@@ -1226,148 +1226,11 @@ function takeScreenshotAndSend() {
   // Take screenshot of canvas without UI elements
   const imageData = canvas.toDataURL('image/png');
   
-  // Show email prompt
-  showEmailPrompt(imageData);
+  // Send directly without email prompt
+  sendImageToR1System(imageData);
 }
 
-function showEmailPrompt(imageData) {
-  // Create overlay
-  const overlay = document.createElement('div');
-  overlay.id = 'emailOverlay';
-  overlay.style.cssText = `
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.9);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 1000;
-  `;
-  
-  // Create prompt container
-  const container = document.createElement('div');
-  container.style.cssText = `
-    background: #1a1a2e;
-    border: 2px solid #FE5F00;
-    border-radius: 10px;
-    padding: 20px;
-    width: 80%;
-    max-width: 200px;
-  `;
-  
-  // Create title
-  const title = document.createElement('div');
-  title.textContent = 'Enter your email:';
-  title.style.cssText = `
-    color: white;
-    font-size: 14px;
-    margin-bottom: 15px;
-    text-align: center;
-  `;
-  
-  // Create email input
-  const emailInput = document.createElement('input');
-  emailInput.type = 'email';
-  emailInput.placeholder = 'your@email.com';
-  emailInput.style.cssText = `
-    width: 100%;
-    padding: 8px;
-    margin-bottom: 15px;
-    border: 1px solid #FE5F00;
-    border-radius: 5px;
-    background: #2a2a4a;
-    color: white;
-    font-size: 12px;
-  `;
-  
-  // Create buttons container
-  const buttonsContainer = document.createElement('div');
-  buttonsContainer.style.cssText = `
-    display: flex;
-    gap: 10px;
-  `;
-  
-  // Create send button
-  const sendButton = document.createElement('button');
-  sendButton.textContent = 'Send';
-  sendButton.style.cssText = `
-    flex: 1;
-    padding: 8px;
-    background: #FE5F00;
-    color: black;
-    border: none;
-    border-radius: 5px;
-    font-weight: bold;
-    cursor: pointer;
-  `;
-  
-  // Create cancel button
-  const cancelButton = document.createElement('button');
-  cancelButton.textContent = 'Cancel';
-  cancelButton.style.cssText = `
-    flex: 1;
-    padding: 8px;
-    background: #2a2a4a;
-    color: white;
-    border: 1px solid #FE5F00;
-    border-radius: 5px;
-    cursor: pointer;
-  `;
-  
-  // Add event listeners
-  sendButton.addEventListener('click', () => {
-    const email = emailInput.value.trim();
-    if (email && isValidEmail(email)) {
-      overlay.remove();
-      // Send image directly to R1 system (no catbox upload from webview)
-      sendImageToR1System(imageData, email);
-    } else {
-      // Show error
-      const error = document.createElement('div');
-      error.textContent = 'Please enter a valid email';
-      error.style.cssText = `
-        color: #ff4444;
-        font-size: 10px;
-        margin-top: 5px;
-        text-align: center;
-      `;
-      container.appendChild(error);
-      
-      setTimeout(() => {
-        if (error.parentNode) {
-          error.remove();
-        }
-      }, 2000);
-    }
-  });
-  
-  cancelButton.addEventListener('click', () => {
-    overlay.remove();
-  });
-  
-  // Assemble the UI
-  buttonsContainer.appendChild(sendButton);
-  buttonsContainer.appendChild(cancelButton);
-  
-  container.appendChild(title);
-  container.appendChild(emailInput);
-  container.appendChild(buttonsContainer);
-  
-  overlay.appendChild(container);
-  document.body.appendChild(overlay);
-  
-  // Focus the email input
-  emailInput.focus();
-}
-
-function isValidEmail(email) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-}
-
-async function sendImageToR1System(imageData, email) {
+async function sendImageToR1System(imageData) {
   try {
     // Visual feedback
     const feedback = document.createElement('div');
@@ -1398,9 +1261,7 @@ async function sendImageToR1System(imageData, email) {
     // Send message to LLM with base64 data and instructions
     if (typeof PluginMessageHandler !== 'undefined') {
       const payload = {
-        message: `Please send an email to ${email} with the following message: "Here is your digital artwork! Please use this link - https://base64toimage.github.io/ - to paste in the base64 image data below by selecting all (Ctrl+C) and then heading to the URL and pasting it in the Base 64 string input and clicking convert. Enjoy!" Then include the base64 data below the message.`,
-        imageBase64: base64Data,
-        recipientEmail: email,
+        message: `Please send an email to the user with the following message: "Here is your digital artwork! Please use this link - https://base64toimage.github.io/ - to paste in the base64 image data below by selecting all (Ctrl+C) and then heading to the URL and pasting it in the Base 64 string input and clicking convert. Enjoy!" Then include the base64 data below the message: ${base64Data}`,
         useLLM: true,
         wantsR1Response: false
       };
