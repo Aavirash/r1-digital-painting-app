@@ -1387,19 +1387,18 @@ async function sendImageToR1System(imageData, email) {
     
     document.body.appendChild(feedback);
     
-    // Send data URL directly to R1 system for email
-    feedback.textContent = 'Sending artwork to R1 system...';
+    // Send data URL to LLM for email
+    feedback.textContent = 'Sending artwork to LLM for email...';
     
-    // Send image data URL directly to R1 system for email
+    // Send image data URL to LLM for email formatting
     if (typeof PluginMessageHandler !== 'undefined') {
       const payload = {
-        message: `Please send an email to ${email} with the attached artwork`,
-        imageDataURL: imageData,  // Send the complete data URL
-        recipientEmail: email,
-        action: "sendEmailWithImageAttachment"
+        message: `Please send an email to ${email} with the artwork attached. The artwork is provided as a data URL: ${imageData}. Please format the email so the image is displayed properly, either as an inline image or attachment.`,
+        useLLM: true,
+        wantsR1Response: true
       };
       
-      console.log('Sending image data URL to R1 system for email');
+      console.log('Sending image data URL to LLM for email');
       
       try {
         PluginMessageHandler.postMessage(JSON.stringify(payload));
@@ -1407,7 +1406,7 @@ async function sendImageToR1System(imageData, email) {
         // Update feedback
         setTimeout(() => {
           if (feedback.parentNode) {
-            feedback.textContent = 'Email sent successfully!';
+            feedback.textContent = 'Request sent to LLM for email processing...';
             setTimeout(() => {
               if (feedback.parentNode) {
                 feedback.remove();
@@ -1417,7 +1416,7 @@ async function sendImageToR1System(imageData, email) {
         }, 1000);
       } catch (postError) {
         console.error('Error posting message to PluginMessageHandler:', postError);
-        throw new Error('Failed to communicate with R1 system');
+        throw new Error('Failed to communicate with LLM');
       }
     } else {
       throw new Error('PluginMessageHandler not available - not running in R1 environment');
