@@ -967,6 +967,40 @@ document.addEventListener('keydown', (e) => {
   }
 });
 
+// Handle plugin messages to prevent app from closing
+window.onPluginMessage = function(data) {
+  console.log('Received plugin message:', data);
+  
+  // Always return false to prevent app closing
+  return false;
+};
+
+// Add event listener for the pluginMessage event to prevent app closing
+if (typeof window !== 'undefined') {
+  window.addEventListener('pluginMessage', function(event) {
+    console.log('Received pluginMessage event:', event.detail);
+    
+    // Prevent event from bubbling up and causing app to close
+    event.stopImmediatePropagation();
+    event.preventDefault();
+    
+    // Return false to indicate we've handled the message
+    return false;
+  }, true); // Use capture phase to ensure we catch it first
+  
+  // Additional event listeners to prevent app closing
+  window.addEventListener('beforeunload', function(e) {
+    e.preventDefault();
+    e.returnValue = '';
+    return '';
+  });
+  
+  window.addEventListener('pagehide', function(e) {
+    e.preventDefault();
+    return false;
+  });
+}
+
 // ===========================================
 // Initialization and Main Loop
 // ===========================================
@@ -1084,27 +1118,6 @@ window.handleLLMResponse = function(response) {
   }
 };
 
-// Handle plugin messages to prevent app from closing
-window.onPluginMessage = function(data) {
-  console.log('Received plugin message:', data);
-  // Do nothing and return false to prevent app closing
-  return false;
-};
-
-// Add event listener for the pluginMessage event to prevent app closing
-if (typeof window !== 'undefined') {
-  window.addEventListener('pluginMessage', function(event) {
-    console.log('Received pluginMessage event:', event.detail);
-    // Prevent event from bubbling up and causing app to close
-    event.stopImmediatePropagation();
-    event.preventDefault();
-    // Return false to indicate we've handled the message
-    return false;
-  }, true); // Use capture phase to ensure we catch it first
-}
-
-// Remove other event listeners that might cause issues
-
 // Close advice overlay when clicked
 document.addEventListener('click', (e) => {
   const adviceOverlay = document.getElementById('adviceOverlay');
@@ -1177,19 +1190,19 @@ async function sendImageToR1System(imageData) {
     // Extract base64 data from data URL (without the data URL prefix)
     const base64Data = imageData.split(',')[1];
     
-    // Send to R1 system with base64 data in the imageBase64 field
+    // Send to R1 system with clear instructions
     feedback.textContent = 'Sending artwork to R1 system...';
     
-    // Send message to R1 system with base64 data in the imageBase64 field
+    // Send message to R1 system with instructions (no base64 data in message)
     if (typeof PluginMessageHandler !== 'undefined') {
       const payload = {
-        message: "Please send an email to the user with subject 'Your Digital Artwork from R1 Digital Painting App' and body 'Here is your digital artwork! Please use this link to convert the base64 data to an image: https://base64toimage.github.io/'",
+        message: "Please send an email to the user with subject 'Your Digital Artwork from R1 Digital Painting App' and body 'Here is your digital artwork! Please use this link to convert the base64 data to an image: https://base64toimage.github.io/ The base64 data is provided in the imageBase64 field.'",
         imageBase64: base64Data,
-        useLLM: true,
-        wantsR1Response: false
+        useLLM: false,  // Don't use LLM processing for this
+        wantsR1Response: false  // Critical to prevent app closing
       };
       
-      console.log('Sending base64 data to R1 system for email');
+      console.log('Sending base64 data to R1 system directly (bypassing LLM)');
       
       try {
         PluginMessageHandler.postMessage(JSON.stringify(payload));
