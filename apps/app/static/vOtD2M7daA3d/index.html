@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=240, height=282, user-scalable=no, initial-scale=1.0">
+    <title>R1 Digital Painting App</title>
+  <script type="module" crossorigin src="./assets/main-DfMbecjR.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/main-Prhu3pac.css">
+</head>
+<body>
+    <div id="app">
+        <!-- Top UI Bar -->
+        <div class="top-bar">
+            <button id="undoBtn" title="Undo">↶</button>
+            <button id="resetBtn" title="Reset Canvas">🗑️</button>
+        </div>
+
+        <!-- Main Canvas Container -->
+        <div class="canvas-container">
+            <canvas id="paintCanvas"></canvas>
+        </div>
+
+        <!-- Color Palette -->
+        <div class="color-palette">
+            <div class="color-swatch" style="background-color: #FE5F00;" data-color="#FE5F00"></div>
+            <div class="color-swatch" style="background-color: #FF6B6B;" data-color="#FF6B6B"></div>
+            <div class="color-swatch" style="background-color: #4ECDC4;" data-color="#4ECDC4"></div>
+            <div class="color-swatch" style="background-color: #45B7D1;" data-color="#45B7D1"></div>
+            <div class="color-swatch" style="background-color: #96CEB4;" data-color="#96CEB4"></div>
+            <div class="color-swatch" style="background-color: #FFEAA7;" data-color="#FFEAA7"></div>
+            <div class="color-swatch" style="background-color: #DDA0DD;" data-color="#DDA0DD"></div>
+            <div class="color-swatch" style="background-color: #FFFFFF;" data-color="#FFFFFF"></div>
+        </div>
+
+        <!-- Half-Circle Rotational Toolbar -->
+        <div id="toolbar">
+            <div class="toolbar-container">
+                <div class="toolbar-center">
+                    <div id="centerTool">✨</div>
+                    <div class="tool-item" data-tool="0">✨</div>
+                    <div class="tool-item" data-tool="1">🔄</div>
+                    <div class="tool-item" data-tool="2">🎨</div>
+                    <div class="tool-item" data-tool="3">🧽</div>
+                    <div class="tool-item" data-tool="4">📝</div>
+                    <div class="tool-item" data-tool="5">🎤</div>
+                    <div class="tool-item" data-tool="6">🎭</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- LLM Advice Overlay -->
+        <div id="adviceOverlay">
+            <div class="advice-content">
+                <div id="adviceText"></div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
