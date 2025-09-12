@@ -693,34 +693,10 @@ function requestCreativeAdvice() {
     const payload = {
       message: 'Give me creative drawing prompts or artistic inspiration in 2-3 sentences. Focus on visual ideas I can draw, like "Draw a tree with colorful leaves" or "Create a pattern of interlocking circles". Be encouraging and artistic.',
       useLLM: true,
-      wantsR1Response: true
+      wantsR1Response: true  // This will be spoken, not displayed
     };
     PluginMessageHandler.postMessage(JSON.stringify(payload));
   }
-  
-  // Visual feedback for LLM request
-  const feedback = document.createElement('div');
-  feedback.textContent = 'Asking LLM for creative ideas...';
-  feedback.style.cssText = `
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    background: rgba(254, 95, 0, 0.9);
-    color: #000;
-    padding: 10px 20px;
-    border-radius: 10px;
-    font-size: 16px;
-    font-weight: bold;
-    z-index: 100;
-    pointer-events: none;
-  `;
-  
-  document.body.appendChild(feedback);
-  
-  setTimeout(() => {
-    feedback.remove();
-  }, 2000);
 }
 
 function updateColorPalette() {
@@ -994,45 +970,8 @@ document.addEventListener('keydown', (e) => {
 
 // Handle plugin messages to prevent app from closing
 window.onPluginMessage = function(data) {
-  // Handle any LLM responses
-  if (data && (data.message || data.data)) {
-    const responseText = data.message || data.data;
-    
-    // Check if this is an email confirmation (don't show as advice)
-    if (responseText.toLowerCase().includes('email') && 
-        (responseText.toLowerCase().includes('sent') || 
-         responseText.toLowerCase().includes('sending') ||
-         responseText.toLowerCase().includes('delivered'))) {
-      // This is an email confirmation - show success feedback
-      const successFeedback = document.createElement('div');
-      successFeedback.textContent = 'Email sent successfully!';
-      successFeedback.style.cssText = `
-        position: fixed;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        background: rgba(0, 255, 0, 0.9);
-        color: #000;
-        padding: 10px 20px;
-        border-radius: 10px;
-        font-size: 16px;
-        font-weight: bold;
-        z-index: 100;
-        pointer-events: none;
-      `;
-      
-      document.body.appendChild(successFeedback);
-      
-      setTimeout(() => {
-        if (successFeedback.parentNode) {
-          successFeedback.remove();
-        }
-      }, 3000);
-    } else {
-      // This is creative advice - show in overlay
-      window.handleLLMResponse(responseText);
-    }
-  }
+  // All LLM responses are handled via voice (R1 speaker) automatically
+  // No text display needed for creative advice
   
   // Always return false to prevent app closing
   return false;
@@ -1139,37 +1078,16 @@ function initApp() {
 // Initialize app when DOM is loaded
 document.addEventListener('DOMContentLoaded', initApp);
 
-// Handle LLM responses
-window.handleLLMResponse = function(response) {
-  const adviceText = document.getElementById('adviceText');
-  const adviceOverlay = document.getElementById('adviceOverlay');
-  
-  if (adviceText && adviceOverlay) {
-    adviceText.textContent = response;
-    adviceOverlay.style.display = 'flex';
-    
-    // Auto-hide after 5 seconds
-    setTimeout(() => {
-      adviceOverlay.style.display = 'none';
-    }, 5000);
-  }
-};
-
-// Close advice overlay when clicked
-document.addEventListener('click', (e) => {
-  const adviceOverlay = document.getElementById('adviceOverlay');
-  if (adviceOverlay && e.target === adviceOverlay) {
-    adviceOverlay.style.display = 'none';
-  }
-});
+// LLM responses are handled via R1 voice output automatically
+// No text display functions needed
 
 function takeScreenshotAndSend() {
   try {
     // Take screenshot of canvas without UI elements
     const imageData = canvas.toDataURL('image/png');
     
-    // Send directly without email prompt
-    sendImageToR1System(imageData);
+    // Send to LLM for email
+    sendImageToLLM(imageData);
   } catch (error) {
     // Show error feedback
     const errorFeedback = document.createElement('div');
@@ -1197,11 +1115,11 @@ function takeScreenshotAndSend() {
       if (errorFeedback.parentNode) {
         errorFeedback.remove();
       }
-    }, 5000);
+    }, 3000);
   }
 }
 
-async function sendImageToR1System(imageData) {
+async function sendImageToLLM(imageData) {
   try {
     // Visual feedback
     const feedback = document.createElement('div');
@@ -1226,22 +1144,32 @@ async function sendImageToR1System(imageData) {
     // Extract base64 data from data URL (without the data URL prefix)
     const base64Data = imageData.split(',')[1];
     
-    // Send message to LLM
+    // Send message to LLM asking to send email with base64 data
     if (typeof PluginMessageHandler !== 'undefined') {
       const payload = {
-        message: "Send me an email with my digital artwork. Subject: 'Your Digital Artwork from R1 Digital Painting App'. Include the artwork image and this converter URL in the email: https://base64toimage.github.io/",
-        imageBase64: base64Data,
+        message: `Please send me an email with subject "Your Digital Artwork from R1 Digital Painting App". In the email body, include this message:
+
+"Here is your digital artwork! To view the image:
+
+1. Copy the base64 data below
+2. Go to https://base64toimage.github.io/  
+3. Paste the data and convert it to see your artwork
+
+Base64 Data:
+${base64Data}
+
+Enjoy your digital creation!"`,
         useLLM: true,
-        wantsR1Response: true
+        wantsR1Response: false
       };
       
       try {
         PluginMessageHandler.postMessage(JSON.stringify(payload));
         
-        // Simple success feedback
+        // Update feedback
         setTimeout(() => {
           if (feedback.parentNode) {
-            feedback.textContent = 'Email request sent!';
+            feedback.textContent = 'Email sent!';
             feedback.style.background = 'rgba(0, 255, 0, 0.9)';
             setTimeout(() => {
               if (feedback.parentNode) {
@@ -1249,7 +1177,7 @@ async function sendImageToR1System(imageData) {
               }
             }, 2000);
           }
-        }, 500);
+        }, 1000);
         
       } catch (postError) {
         throw new Error('Failed to send message: ' + postError.message);
@@ -1258,18 +1186,9 @@ async function sendImageToR1System(imageData) {
       throw new Error('PluginMessageHandler not available');
     }
   } catch (error) {
-    console.error('Error processing image:', error);
-    
-    let errorMessage = 'Failed to process artwork: ';
-    if (error.message.includes('PluginMessageHandler')) {
-      errorMessage += 'Not running in R1 environment';
-    } else {
-      errorMessage += error.message;
-    }
-    
     // Show error feedback
     const errorFeedback = document.createElement('div');
-    errorFeedback.textContent = errorMessage;
+    errorFeedback.textContent = 'Failed to send email';
     errorFeedback.style.cssText = `
       position: fixed;
       top: 50%;
@@ -1293,24 +1212,9 @@ async function sendImageToR1System(imageData) {
       if (errorFeedback.parentNode) {
         errorFeedback.remove();
       }
-    }, 5000);
+    }, 3000);
   }
 }
 
-// Keep the dataURLToBlob function as it's still needed
-function dataURLToBlob(dataURL) {
-  const parts = dataURL.split(';base64,');
-  const contentType = parts[0].split(':')[1];
-  const byteString = atob(parts[1]);
-  const ab = new ArrayBuffer(byteString.length);
-  const ia = new Uint8Array(ab);
-  
-  for (let i = 0; i < byteString.length; i++) {
-    ia[i] = byteString.charCodeAt(i);
-  }
-  
-  return new Blob([ab], { type: contentType });
-}
-
-// Remove the old upload functions that tried to upload to catbox directly from the webview
+// dataURLToBlob function removed as it's no longer needed
 
