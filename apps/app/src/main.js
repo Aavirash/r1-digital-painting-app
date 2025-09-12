@@ -596,8 +596,6 @@ function cycleTool(direction) {
         particleSystemActive = false;
     }
   }
-  
-  console.log(`Selected tool: ${tools[selectedToolIndex].label}`);
 }
 
 function showRippleAnimation() {
@@ -684,8 +682,6 @@ function selectTool(index) {
       symmetryEnabled = false;
       particleSystemActive = false;
   }
-  
-  console.log(`Selected tool: ${tools[index].label}`);
 }
 
 // ===========================================
@@ -991,7 +987,6 @@ document.addEventListener('keydown', (e) => {
   
   // 'E' key for testing email function directly
   if (e.key === 'e' || e.key === 'E') {
-    console.log('Testing email function directly (E key pressed)');
     takeScreenshotAndSend();
     e.preventDefault();
   }
@@ -999,45 +994,11 @@ document.addEventListener('keydown', (e) => {
 
 // Handle plugin messages to prevent app from closing
 window.onPluginMessage = function(data) {
-  console.log('Received plugin message:', data);
-  
-  // Check if this is a response to our email request
+  // Check if this is creative advice (for LLM tool)
   if (data && (data.message || data.data)) {
     const responseText = data.message || data.data;
-    console.log('LLM Response:', responseText);
-    
-    // If it looks like an email confirmation, show success feedback
-    if (responseText.toLowerCase().includes('email') || 
-        responseText.toLowerCase().includes('sent') ||
-        responseText.toLowerCase().includes('delivered')) {
-      
-      const successFeedback = document.createElement('div');
-      successFeedback.textContent = 'Email sent successfully!';
-      successFeedback.style.cssText = `
-        position: fixed;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        background: rgba(0, 255, 0, 0.9);
-        color: #000;
-        padding: 10px 20px;
-        border-radius: 10px;
-        font-size: 16px;
-        font-weight: bold;
-        z-index: 100;
-        pointer-events: none;
-      `;
-      
-      document.body.appendChild(successFeedback);
-      
-      setTimeout(() => {
-        if (successFeedback.parentNode) {
-          successFeedback.remove();
-        }
-      }, 3000);
-    }
-    // If it's creative advice (for LLM tool), handle it
-    else if (data.wantsR1Response !== false) {
+    // Only handle creative advice responses
+    if (data.wantsR1Response !== false) {
       window.handleLLMResponse(responseText);
     }
   }
@@ -1172,19 +1133,16 @@ document.addEventListener('click', (e) => {
 });
 
 function takeScreenshotAndSend() {
-  console.log('PTT button pressed - starting screenshot process');
   try {
     // Take screenshot of canvas without UI elements
     const imageData = canvas.toDataURL('image/png');
-    console.log('Screenshot captured successfully, data length:', imageData.length);
     
     // Send directly without email prompt
     sendImageToR1System(imageData);
   } catch (error) {
-    console.error('Error taking screenshot:', error);
     // Show error feedback
     const errorFeedback = document.createElement('div');
-    errorFeedback.textContent = 'Failed to capture artwork: ' + error.message;
+    errorFeedback.textContent = 'Failed to capture artwork';
     errorFeedback.style.cssText = `
       position: fixed;
       top: 50%;
@@ -1213,11 +1171,10 @@ function takeScreenshotAndSend() {
 }
 
 async function sendImageToR1System(imageData) {
-  console.log('Starting sendImageToR1System function');
   try {
     // Visual feedback
     const feedback = document.createElement('div');
-    feedback.textContent = 'Processing artwork...';
+    feedback.textContent = 'Sending email...';
     feedback.style.cssText = `
       position: fixed;
       top: 50%;
@@ -1237,75 +1194,36 @@ async function sendImageToR1System(imageData) {
     
     // Extract base64 data from data URL (without the data URL prefix)
     const base64Data = imageData.split(',')[1];
-    console.log('Extracted base64 data, length:', base64Data.length);
     
-    // Send to LLM with instructions to send email with base64 data in the body text
-    feedback.textContent = 'Sending email request to LLM...';
-    
-    // Send message to LLM with base64 data directly in the message body
+    // Send message to LLM
     if (typeof PluginMessageHandler !== 'undefined') {
       const payload = {
-        message: `SEND EMAIL REQUEST: Please send an email to the user with the following details:
-
-Subject: Your Digital Artwork from R1 Digital Painting App
-
-Body: 
-Here is your digital artwork from the R1 Digital Painting App! 
-
-To view your artwork:
-1. Visit this converter website: https://base64toimage.github.io/
-2. Copy and paste the base64 data below into the converter
-3. Click convert to see your beautiful artwork!
-
-Base64 Data:
-${base64Data}
-
-Thank you for using the R1 Digital Painting App!`,
+        message: `Send me an email with my digital artwork. Subject: "Your Digital Artwork from R1 Digital Painting App". Include this base64 data in the email body with instructions to convert it at https://base64toimage.github.io/: ${base64Data}`,
         useLLM: true,
-        wantsR1Response: false  // Critical to prevent app closing
+        wantsR1Response: false
       };
-      
-      console.log('Sending base64 data to LLM directly in message body');
-      console.log('Payload message length:', payload.message.length);
-      console.log('Image data length:', base64Data.length);
-      console.log('Message preview:', payload.message.substring(0, 200) + '...');
       
       try {
         PluginMessageHandler.postMessage(JSON.stringify(payload));
-        console.log('Message posted to PluginMessageHandler successfully');
         
-        // Update feedback with timeout mechanism
+        // Simple success feedback
         setTimeout(() => {
           if (feedback.parentNode) {
-            feedback.textContent = 'Email sent successfully!';
+            feedback.textContent = 'Email request sent!';
             feedback.style.background = 'rgba(0, 255, 0, 0.9)';
             setTimeout(() => {
               if (feedback.parentNode) {
                 feedback.remove();
               }
-            }, 3000);
+            }, 2000);
           }
-        }, 1000);
-        
-        // Add timeout in case LLM doesn't respond
-        setTimeout(() => {
-          if (feedback.parentNode) {
-            feedback.textContent = 'Email request sent (check your inbox)';
-            feedback.style.background = 'rgba(254, 95, 0, 0.9)';
-            setTimeout(() => {
-              if (feedback.parentNode) {
-                feedback.remove();
-              }
-            }, 3000);
-          }
-        }, 5000);
+        }, 500);
         
       } catch (postError) {
-        console.error('Error posting message to PluginMessageHandler:', postError);
-        throw new Error('Failed to communicate with LLM: ' + postError.message);
+        throw new Error('Failed to send message: ' + postError.message);
       }
     } else {
-      throw new Error('PluginMessageHandler not available - not running in R1 environment');
+      throw new Error('PluginMessageHandler not available');
     }
   } catch (error) {
     console.error('Error processing image:', error);
