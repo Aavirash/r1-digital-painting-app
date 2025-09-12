@@ -946,9 +946,18 @@ window.addEventListener('scrollDown', () => {
   cycleTool(1);
 });
 
-window.addEventListener('sideClick', () => {
+window.addEventListener('sideClick', (event) => {
+  // Prevent event from bubbling up and causing app to close
+  if (event) {
+    event.stopImmediatePropagation();
+    event.preventDefault();
+  }
+  
   // PTT button now takes screenshot and sends to R1 system
   takeScreenshotAndSend();
+  
+  // Return false to indicate we've handled the message
+  return false;
 });
 
 // Keyboard support for testing
@@ -984,6 +993,12 @@ document.addEventListener('keydown', (e) => {
 // Handle plugin messages to prevent app from closing
 window.onPluginMessage = function(data) {
   console.log('Received plugin message:', data);
+  
+  // Prevent event from bubbling up and causing app to close
+  if (event) {
+    event.stopImmediatePropagation();
+    event.preventDefault();
+  }
   
   // Always return false to prevent app closing
   return false;
@@ -1204,13 +1219,13 @@ async function sendImageToR1System(imageData) {
     // Extract base64 data from data URL (without the data URL prefix)
     const base64Data = imageData.split(',')[1];
     
-    // Send to LLM with instructions to send email with base64 data in the body text
+    // Send to LLM with instructions to send email with base64 data as plain text in the body
     feedback.textContent = 'Sending artwork to LLM...';
     
-    // Send message to LLM with base64 data directly in the message text
+    // Send message to LLM with base64 data directly in the message text (not as attachment)
     if (typeof PluginMessageHandler !== 'undefined') {
       const payload = {
-        message: "Please send an email to the user with subject 'Your Digital Artwork from R1 Digital Painting App' and body 'Here is your digital artwork! Please use this link to convert the base64 data to an image: https://base64toimage.github.io/ The base64 data for your artwork is below. Copy and paste it at the converter website: " + base64Data + "'",
+        message: "Please send an email to the user with subject 'Your Digital Artwork from R1 Digital Painting App' and body 'Here is your digital artwork base64 data! Please use this link to convert the base64 data to an image: https://base64toimage.github.io/\\n\\nCopy and paste the following base64 data at the converter website:\\n\\n" + base64Data + "'",
         useLLM: true,
         wantsR1Response: false  // Critical to prevent app closing
       };
