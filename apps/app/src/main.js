@@ -1194,25 +1194,37 @@ async function sendImageToR1System(imageData) {
     
     document.body.appendChild(feedback);
     
-    // First, let's test with a simple message to see if LLM is working
+    // Extract base64 data from data URL (without the data URL prefix)
+    const base64Data = imageData.split(',')[1];
+    console.log('Extracted base64 data length:', base64Data.length);
+    
+    // Send to LLM with instructions to send email with base64 data as plain text in the body
+    feedback.textContent = 'Sending artwork to LLM...';
+    
+    // Send message to LLM with base64 data directly in the message text (not as attachment)
     if (typeof PluginMessageHandler !== 'undefined') {
-      const testPayload = {
-        message: "Please send an email to the user with subject 'Test Email from R1 Digital Painting App' and body 'This is a test email to verify that the LLM can send emails.'",
+      // Create the message with base64 data embedded directly
+      const fullMessage = "Please send an email to the user with subject 'Your Digital Artwork from R1 Digital Painting App' and body 'Here is your digital artwork base64 data! Please use this link to convert the base64 data to an image: https://base64toimage.github.io/\\n\\nCopy and paste the following base64 data at the converter website:\\n\\n" + base64Data + "'";
+      
+      console.log('Full message length:', fullMessage.length);
+      
+      const payload = {
+        message: fullMessage,
         useLLM: true,
         wantsR1Response: false  // Critical to prevent app closing
       };
       
-      console.log('Sending test message to LLM');
-      console.log('Test Payload:', JSON.stringify(testPayload, null, 2)); // Log the payload for debugging
+      console.log('Sending base64 data to LLM as text in message body');
+      console.log('Payload:', JSON.stringify(payload, null, 2)); // Log the payload for debugging
       
       try {
-        PluginMessageHandler.postMessage(JSON.stringify(testPayload));
-        console.log('Test message posted to PluginMessageHandler successfully');
+        PluginMessageHandler.postMessage(JSON.stringify(payload));
+        console.log('Message posted to PluginMessageHandler successfully');
         
         // Update feedback
         setTimeout(() => {
           if (feedback.parentNode) {
-            feedback.textContent = 'Test email request sent to LLM...';
+            feedback.textContent = 'Email request sent to LLM...';
             setTimeout(() => {
               if (feedback.parentNode) {
                 feedback.remove();
