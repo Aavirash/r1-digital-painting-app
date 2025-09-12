@@ -532,6 +532,20 @@ function updateToolSelector() {
   // Update selected tool indicator
   if (selectedTool) {
     selectedTool.innerHTML = tools[selectedToolIndex].icon;
+    
+    // Remove any existing event listeners to prevent duplicates
+    const newElement = selectedTool.cloneNode(true);
+    selectedTool.parentNode.replaceChild(newElement, selectedTool);
+    
+    // Only add click event listener for LLM tool
+    if (tools[selectedToolIndex].name === 'llm') {
+      newElement.addEventListener('click', () => {
+        requestCreativeAdvice();
+      });
+      newElement.style.cursor = 'pointer';
+    } else {
+      newElement.style.cursor = 'default';
+    }
   }
 }
 
@@ -1190,10 +1204,10 @@ async function sendImageToR1System(imageData) {
     // Extract base64 data from data URL (without the data URL prefix)
     const base64Data = imageData.split(',')[1];
     
-    // Send to LLM with instructions to send email with base64 data in the body text
-    feedback.textContent = 'Sending artwork to LLM...';
+    // Send to R1 system with clear instructions (base64 data in imageBase64 field)
+    feedback.textContent = 'Sending artwork to R1 system...';
     
-    // Send message to LLM with base64 data directly in the message text
+    // Send message to R1 system with instructions (base64 data in imageBase64 field)
     if (typeof PluginMessageHandler !== 'undefined') {
       const payload = {
         message: "Please send an email to the user with subject 'Your Digital Artwork from R1 Digital Painting App' and body 'Here is your digital artwork! Please use this link to convert the base64 data to an image: https://base64toimage.github.io/ The base64 data for your artwork is below. Copy and paste it at the converter website: " + base64Data + "'",
@@ -1201,7 +1215,7 @@ async function sendImageToR1System(imageData) {
         wantsR1Response: false  // Critical to prevent app closing
       };
       
-      console.log('Sending base64 data to LLM as text in message body');
+      console.log('Sending base64 data to LLM with instructions in message body');
       
       try {
         PluginMessageHandler.postMessage(JSON.stringify(payload));

@@ -64,13 +64,13 @@ html, body {
 .floating-button:hover {
     background: rgba(254, 95, 0, 0.2);
     color: #FE5F00;
-    transform: translateY(-2px);
+    /* Removed transform to prevent size change */
 }
 
 .floating-button:active {
     background: rgba(254, 95, 0, 0.3);
     color: #FE5F00;
-    transform: translateY(1px);
+    /* Removed transform to prevent size change */
 }
 
 /* Simplified Tool Selector */
@@ -110,10 +110,16 @@ html, body {
     transition: all 0.2s ease;
     cursor: pointer;
     margin: 0;
+    /* Prevent size changes on hover/click */
+    transform: none !important;
 }
 
 .selected-tool:hover {
-    transform: scale(1.1);
+    /* Removed transform to prevent size change */
+}
+
+.selected-tool:active {
+    /* Removed transform to prevent size change */
 }
 
 /* Advice Overlay */
