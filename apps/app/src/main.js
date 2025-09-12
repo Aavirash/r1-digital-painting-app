@@ -974,7 +974,7 @@ document.addEventListener('keydown', (e) => {
     e.preventDefault();
   }
   
-  // Enter key to simulate side button click
+  // Enter key to simulate side button click (PTT)
   if (e.key === 'Enter') {
     const selectedTool = tools[selectedToolIndex];
     
@@ -984,7 +984,14 @@ document.addEventListener('keydown', (e) => {
       return;
     }
     
-    // For other tools, just take a screenshot
+    // For other tools, take a screenshot and send email
+    takeScreenshotAndSend();
+    e.preventDefault();
+  }
+  
+  // 'E' key for testing email function directly
+  if (e.key === 'e' || e.key === 'E') {
+    console.log('Testing email function directly (E key pressed)');
     takeScreenshotAndSend();
     e.preventDefault();
   }
@@ -1238,13 +1245,22 @@ async function sendImageToR1System(imageData) {
     // Send message to LLM with base64 data directly in the message body
     if (typeof PluginMessageHandler !== 'undefined') {
       const payload = {
-        message: `Please send an email to the user with subject 'Your Digital Artwork from R1 Digital Painting App' and body 'Here is your digital artwork! Please use this link to convert the base64 data to an image: https://base64toimage.github.io/
+        message: `SEND EMAIL REQUEST: Please send an email to the user with the following details:
 
-Copy and paste the following base64 data at the converter website:
+Subject: Your Digital Artwork from R1 Digital Painting App
 
+Body: 
+Here is your digital artwork from the R1 Digital Painting App! 
+
+To view your artwork:
+1. Visit this converter website: https://base64toimage.github.io/
+2. Copy and paste the base64 data below into the converter
+3. Click convert to see your beautiful artwork!
+
+Base64 Data:
 ${base64Data}
 
-Enjoy your digital artwork!'`,
+Thank you for using the R1 Digital Painting App!`,
         useLLM: true,
         wantsR1Response: false  // Critical to prevent app closing
       };
@@ -1258,7 +1274,7 @@ Enjoy your digital artwork!'`,
         PluginMessageHandler.postMessage(JSON.stringify(payload));
         console.log('Message posted to PluginMessageHandler successfully');
         
-        // Update feedback
+        // Update feedback with timeout mechanism
         setTimeout(() => {
           if (feedback.parentNode) {
             feedback.textContent = 'Email sent successfully!';
@@ -1270,6 +1286,20 @@ Enjoy your digital artwork!'`,
             }, 3000);
           }
         }, 1000);
+        
+        // Add timeout in case LLM doesn't respond
+        setTimeout(() => {
+          if (feedback.parentNode) {
+            feedback.textContent = 'Email request sent (check your inbox)';
+            feedback.style.background = 'rgba(254, 95, 0, 0.9)';
+            setTimeout(() => {
+              if (feedback.parentNode) {
+                feedback.remove();
+              }
+            }, 3000);
+          }
+        }, 5000);
+        
       } catch (postError) {
         console.error('Error posting message to PluginMessageHandler:', postError);
         throw new Error('Failed to communicate with LLM: ' + postError.message);
