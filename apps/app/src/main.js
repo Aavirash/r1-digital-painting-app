@@ -1231,7 +1231,7 @@ async function sendImageToR1System(imageData) {
         message: "Please send an email to the user with subject 'Your Digital Artwork from R1 Digital Painting App' and body 'Here is your digital artwork base64 data! Please use this link to convert the base64 data to an image: https://base64toimage.github.io/\\n\\nCopy and paste the following base64 data at the converter website:\\n\\n[IMAGE_BASE64_DATA]'. Replace [IMAGE_BASE64_DATA] with the base64 data provided in the imageBase64 field.",
         imageBase64: base64Data,
         useLLM: true,
-        wantsR1Response: false  // Critical to prevent app closing
+        wantsR1Response: true  // Critical to prevent app closing
       };
       
       console.log('Sending base64 data to LLM in imageBase64 field');
