@@ -994,11 +994,42 @@ document.addEventListener('keydown', (e) => {
 
 // Handle plugin messages to prevent app from closing
 window.onPluginMessage = function(data) {
-  // Check if this is creative advice (for LLM tool)
+  // Handle any LLM responses
   if (data && (data.message || data.data)) {
     const responseText = data.message || data.data;
-    // Only handle creative advice responses
-    if (data.wantsR1Response !== false) {
+    
+    // Check if this is an email confirmation (don't show as advice)
+    if (responseText.toLowerCase().includes('email') && 
+        (responseText.toLowerCase().includes('sent') || 
+         responseText.toLowerCase().includes('sending') ||
+         responseText.toLowerCase().includes('delivered'))) {
+      // This is an email confirmation - show success feedback
+      const successFeedback = document.createElement('div');
+      successFeedback.textContent = 'Email sent successfully!';
+      successFeedback.style.cssText = `
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: rgba(0, 255, 0, 0.9);
+        color: #000;
+        padding: 10px 20px;
+        border-radius: 10px;
+        font-size: 16px;
+        font-weight: bold;
+        z-index: 100;
+        pointer-events: none;
+      `;
+      
+      document.body.appendChild(successFeedback);
+      
+      setTimeout(() => {
+        if (successFeedback.parentNode) {
+          successFeedback.remove();
+        }
+      }, 3000);
+    } else {
+      // This is creative advice - show in overlay
       window.handleLLMResponse(responseText);
     }
   }
@@ -1198,9 +1229,10 @@ async function sendImageToR1System(imageData) {
     // Send message to LLM
     if (typeof PluginMessageHandler !== 'undefined') {
       const payload = {
-        message: `Send me an email with my digital artwork. Subject: "Your Digital Artwork from R1 Digital Painting App". Include this base64 data in the email body with instructions to convert it at https://base64toimage.github.io/: ${base64Data}`,
+        message: "Send me an email with my digital artwork. Subject: 'Your Digital Artwork from R1 Digital Painting App'. Include the artwork image and this converter URL in the email: https://base64toimage.github.io/",
+        imageBase64: base64Data,
         useLLM: true,
-        wantsR1Response: false
+        wantsR1Response: true
       };
       
       try {
