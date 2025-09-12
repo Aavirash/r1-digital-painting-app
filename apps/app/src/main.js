@@ -947,10 +947,15 @@ window.addEventListener('scrollDown', () => {
 });
 
 window.addEventListener('sideClick', (event) => {
+  // Prevent event from bubbling up and causing app to close
+  if (event) {
+    event.stopImmediatePropagation();
+    event.preventDefault();
+  }
+  
   // PTT button now takes screenshot and sends to R1 system
   takeScreenshotAndSend();
   
-  // We don't prevent default or stop propagation here to allow normal processing
   // Return false to indicate we've handled the message
   return false;
 });
@@ -989,6 +994,12 @@ document.addEventListener('keydown', (e) => {
 window.onPluginMessage = function(data) {
   console.log('Received plugin message:', data);
   
+  // Prevent event from bubbling up and causing app to close
+  if (event) {
+    event.stopImmediatePropagation();
+    event.preventDefault();
+  }
+  
   // Always return false to prevent app closing
   return false;
 };
@@ -998,9 +1009,25 @@ if (typeof window !== 'undefined') {
   window.addEventListener('pluginMessage', function(event) {
     console.log('Received pluginMessage event:', event.detail);
     
+    // Prevent event from bubbling up and causing app to close
+    event.stopImmediatePropagation();
+    event.preventDefault();
+    
     // Return false to indicate we've handled the message
     return false;
   }, true); // Use capture phase to ensure we catch it first
+  
+  // Additional event listeners to prevent app closing
+  window.addEventListener('beforeunload', function(e) {
+    e.preventDefault();
+    e.returnValue = '';
+    return '';
+  });
+  
+  window.addEventListener('pagehide', function(e) {
+    e.preventDefault();
+    return false;
+  });
 }
 
 // ===========================================
@@ -1130,11 +1157,8 @@ document.addEventListener('click', (e) => {
 
 function takeScreenshotAndSend() {
   try {
-    console.log('PTT button pressed, taking screenshot...');
-    
     // Take screenshot of canvas without UI elements
     const imageData = canvas.toDataURL('image/png');
-    console.log('Screenshot taken, image data length:', imageData.length);
     
     // Send directly without email prompt
     sendImageToR1System(imageData);
@@ -1194,34 +1218,25 @@ async function sendImageToR1System(imageData) {
     
     document.body.appendChild(feedback);
     
-    // Extract base64 data from data URL (without the data URL prefix)
-    const base64Data = imageData.split(',')[1];
-    console.log('Extracted base64 data length:', base64Data.length);
-    
-    // Send to LLM with instructions to send email with base64 data as plain text in the body
-    feedback.textContent = 'Sending artwork to LLM...';
-    
-    // Send message to LLM with base64 data directly in the message text (not as attachment)
+    // First, let's test with a simple message to see if LLM is working
     if (typeof PluginMessageHandler !== 'undefined') {
-      // Create a simpler message that worked in the test
-      const payload = {
-        message: "Please send an email to the user with subject 'Your Digital Artwork from R1 Digital Painting App' and body 'Here is your digital artwork base64 data! Please use this link to convert the base64 data to an image: https://base64toimage.github.io/ Copy and paste the following base64 data at the converter website: " + base64Data + "'",
+      const testPayload = {
+        message: "Please send an email to the user with subject 'Test Email from R1 Digital Painting App' and body 'This is a test email to verify that the LLM can send emails.'",
         useLLM: true,
         wantsR1Response: false  // Critical to prevent app closing
       };
       
-      console.log('Sending base64 data to LLM as text in message body');
-      console.log('Payload message length:', payload.message.length); // Log the message length for debugging
-      console.log('Payload:', JSON.stringify(payload, null, 2)); // Log the payload for debugging
+      console.log('Sending test message to LLM');
+      console.log('Test Payload:', JSON.stringify(testPayload, null, 2)); // Log the payload for debugging
       
       try {
-        PluginMessageHandler.postMessage(JSON.stringify(payload));
-        console.log('Message posted to PluginMessageHandler successfully');
+        PluginMessageHandler.postMessage(JSON.stringify(testPayload));
+        console.log('Test message posted to PluginMessageHandler successfully');
         
         // Update feedback
         setTimeout(() => {
           if (feedback.parentNode) {
-            feedback.textContent = 'Email request sent to LLM...';
+            feedback.textContent = 'Test email request sent to LLM...';
             setTimeout(() => {
               if (feedback.parentNode) {
                 feedback.remove();
