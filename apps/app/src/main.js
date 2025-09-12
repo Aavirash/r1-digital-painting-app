@@ -1204,7 +1204,7 @@ async function sendImageToR1System(imageData) {
     // Send message to LLM with base64 data directly in the message text (not as attachment)
     if (typeof PluginMessageHandler !== 'undefined') {
       // Create the message with base64 data embedded directly
-      const fullMessage = "Please send an email to the user with subject 'Your Digital Artwork from R1 Digital Painting App' and body 'Here is your digital artwork base64 data! Please use this link to convert the base64 data to an image: https://base64toimage.github.io/\\n\\nCopy and paste the following base64 data at the converter website:\\n\\n" + base64Data + "'";
+      const fullMessage = "Please send an email to the user with subject 'Your Digital Artwork from R1 Digital Painting App' and body 'Here is your digital artwork base64 data! Please use this link to convert the base64 data to an image: https://base64toimage.github.io/\n\nCopy and paste the following base64 data at the converter website:\n\n" + base64Data + "'";
       
       console.log('Full message length:', fullMessage.length);
       
