@@ -994,6 +994,47 @@ document.addEventListener('keydown', (e) => {
 window.onPluginMessage = function(data) {
   console.log('Received plugin message:', data);
   
+  // Check if this is a response to our email request
+  if (data && (data.message || data.data)) {
+    const responseText = data.message || data.data;
+    console.log('LLM Response:', responseText);
+    
+    // If it looks like an email confirmation, show success feedback
+    if (responseText.toLowerCase().includes('email') || 
+        responseText.toLowerCase().includes('sent') ||
+        responseText.toLowerCase().includes('delivered')) {
+      
+      const successFeedback = document.createElement('div');
+      successFeedback.textContent = 'Email sent successfully!';
+      successFeedback.style.cssText = `
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: rgba(0, 255, 0, 0.9);
+        color: #000;
+        padding: 10px 20px;
+        border-radius: 10px;
+        font-size: 16px;
+        font-weight: bold;
+        z-index: 100;
+        pointer-events: none;
+      `;
+      
+      document.body.appendChild(successFeedback);
+      
+      setTimeout(() => {
+        if (successFeedback.parentNode) {
+          successFeedback.remove();
+        }
+      }, 3000);
+    }
+    // If it's creative advice (for LLM tool), handle it
+    else if (data.wantsR1Response !== false) {
+      window.handleLLMResponse(responseText);
+    }
+  }
+  
   // Always return false to prevent app closing
   return false;
 };
@@ -1124,9 +1165,11 @@ document.addEventListener('click', (e) => {
 });
 
 function takeScreenshotAndSend() {
+  console.log('PTT button pressed - starting screenshot process');
   try {
     // Take screenshot of canvas without UI elements
     const imageData = canvas.toDataURL('image/png');
+    console.log('Screenshot captured successfully, data length:', imageData.length);
     
     // Send directly without email prompt
     sendImageToR1System(imageData);
@@ -1163,6 +1206,7 @@ function takeScreenshotAndSend() {
 }
 
 async function sendImageToR1System(imageData) {
+  console.log('Starting sendImageToR1System function');
   try {
     // Visual feedback
     const feedback = document.createElement('div');
@@ -1186,23 +1230,29 @@ async function sendImageToR1System(imageData) {
     
     // Extract base64 data from data URL (without the data URL prefix)
     const base64Data = imageData.split(',')[1];
+    console.log('Extracted base64 data, length:', base64Data.length);
     
     // Send to LLM with instructions to send email with base64 data in the body text
-    feedback.textContent = 'Sending artwork to LLM...';
+    feedback.textContent = 'Sending email request to LLM...';
     
-    // Send message to LLM with base64 data in the imageBase64 field (as per R1 SDK specs)
+    // Send message to LLM with base64 data directly in the message body
     if (typeof PluginMessageHandler !== 'undefined') {
       const payload = {
-        message: "Please send an email to the user with subject 'Your Digital Artwork from R1 Digital Painting App' and body 'Here is your digital artwork base64 data! Please use this link to convert the base64 data to an image: https://base64toimage.github.io/\\n\\nCopy and paste the following base64 data at the converter website:\\n\\n[IMAGE_BASE64_DATA]'. Replace [IMAGE_BASE64_DATA] with the base64 data provided in the imageBase64 field.",
-        imageBase64: base64Data,  // Send base64 data in the proper field
+        message: `Please send an email to the user with subject 'Your Digital Artwork from R1 Digital Painting App' and body 'Here is your digital artwork! Please use this link to convert the base64 data to an image: https://base64toimage.github.io/
+
+Copy and paste the following base64 data at the converter website:
+
+${base64Data}
+
+Enjoy your digital artwork!'`,
         useLLM: true,
         wantsR1Response: false  // Critical to prevent app closing
       };
       
-      console.log('Sending base64 data to LLM in imageBase64 field');
+      console.log('Sending base64 data to LLM directly in message body');
       console.log('Payload message length:', payload.message.length);
       console.log('Image data length:', base64Data.length);
-      console.log('Full payload:', JSON.stringify(payload, null, 2)); // Log the full payload for debugging
+      console.log('Message preview:', payload.message.substring(0, 200) + '...');
       
       try {
         PluginMessageHandler.postMessage(JSON.stringify(payload));
@@ -1211,7 +1261,8 @@ async function sendImageToR1System(imageData) {
         // Update feedback
         setTimeout(() => {
           if (feedback.parentNode) {
-            feedback.textContent = 'Email request sent to LLM...';
+            feedback.textContent = 'Email sent successfully!';
+            feedback.style.background = 'rgba(0, 255, 0, 0.9)';
             setTimeout(() => {
               if (feedback.parentNode) {
                 feedback.remove();
@@ -1221,7 +1272,7 @@ async function sendImageToR1System(imageData) {
         }, 1000);
       } catch (postError) {
         console.error('Error posting message to PluginMessageHandler:', postError);
-        throw new Error('Failed to communicate with LLM');
+        throw new Error('Failed to communicate with LLM: ' + postError.message);
       }
     } else {
       throw new Error('PluginMessageHandler not available - not running in R1 environment');
